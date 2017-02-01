@@ -1,0 +1,117 @@
+!NowRef = ref
+var !NowMode Mode
+Forward
+
+if ( !!ce.type eq |WORL| ) Then
+   !!Alert.Error('You Can not user on WORLD Level!!!')
+   Return
+Elseif ( !!ce.owner.type eq |BRAN| ) then
+   bran
+endif
+
+var !branlist collect all bran for ce
+!branqty = !branlist.size()
+
+do !b index !branlist
+   $!branlist[$!b]
+   
+   var !attalist collect all (atta OLET) for ce
+   var !tubelist collect all tubi for ce
+   
+   !vollist  = object array()
+   
+   do !i index !tubelist
+      $!tubelist[$!i]
+      !tubevol  = !!ce.wvol
+      handle any
+         skip
+      endhandle
+      var !ref  ref
+      var !type ( type of $!ref )
+      if ( !type eq |BRAN| ) then
+         var !chkdir ( hdir of $!ref )
+      else
+         var !chkdir ( ldir of $!ref )
+      endif
+      !chkdir   = substring(!chkdir,1,1)
+      !tubeinfo = |$!ref $!chkdir $!type $!tubevol[1] $!tubevol[2] $!tubevol[3] $!tubevol[4] $!tubevol[5] $!tubevol[6]|
+      !vollist.append(!tubeinfo)
+   enddo
+   
+   !volmemberlist  = object array()
+   !sorttypelist   = object array()
+   !reorderlist    = object array()
+   
+   do !v from 1 to !vollist.size()
+      !info        = !vollist[$!v].split()
+      if ( |$!info[2]| Inset ( |E|, |N|, |U| ) ) then
+         !sorttype = |INVERT|
+      else
+         !sorttype = |SORT|
+      endif
+      !sorttypelist.append(!sorttype)
+   
+      if ( |$!info[3]| eq |BRAN| ) then
+         !reorder  = |before|
+      else
+         !reorder  = |after|
+      endif
+      !reorderlist.append(!reorder)
+      
+      !aposlist    = object array()
+      !aposlist.clear()
+      do !a index !attalist
+         $!attalist[$!a]
+         var !attaposx x in /*
+         var !attaposy y in /*
+         var !attaposz z in /*
+         if ( $!attaposx gt $!info[4] and $!attaposx lt $!info[7] ) then
+            if ( $!attaposy gt $!info[5] and $!attaposy lt $!info[8] ) then
+               if ( $!attaposz gt $!info[6] and $!attaposz lt $!info[9] ) then
+                  if ( |$!info[2]| Inset( |E|, |W| ) ) then
+                     !aposline = |$!info[1]| + | $!attaposx | + |$!attalist[$!a]|
+                  elseif ( |$!info[2]| Inset( |N|, |S| ) ) then
+                     !aposline = |$!info[1]| + | $!attaposy | + |$!attalist[$!a]|
+                  elseif ( |$!info[2]| Inset( |U|, |D| ) ) then
+                     !aposline = |$!info[1]| + | $!attaposz | + |$!attalist[$!a]|
+                  endif
+                  !aposlist.append(!aposline)
+               endif
+            endif
+         endif
+      enddo
+      !volmemberlist.append(!aposlist)
+   enddo
+   
+   do !m from 1 to !volmemberlist.size()
+      !memberchk = !volmemberlist[$!m].size()
+      if ( !memberchk gt 0 ) then
+         !volmemberlist[$!m].sort()
+         if ( |$!sorttypelist[$!m]| eq |INVERT| ) then
+            !volmemberlist[$!m].invert()
+         endif
+         
+         if ( |$!reorderlist[$!m]| eq |after| ) then
+            do !p from 1 to !volmemberlist[$!m].size()
+               !splitinfo = !volmemberlist[$!m][$!p].split()
+               bran
+               reorder $!splitinfo[3] after $!splitinfo[1]
+            enddo
+         else
+            do !p from 1 to !volmemberlist[$!m].size()
+               !splitinfo = !volmemberlist[$!m][$!p].split()
+               !firstmemb = ref of first member of $!splitinfo[1]
+               if ( |$!firstmemb| ne |$!splitinfo[3]| ) then
+                  bran
+                  reorder $!splitinfo[3] before $!firstmemb
+               endif
+            enddo
+         endif
+      endif
+   enddo
+   $p $!b of $!branqty completed...
+enddo
+$!NowRef
+$!NowMode
+
+!!alert.message('All atta sorted')

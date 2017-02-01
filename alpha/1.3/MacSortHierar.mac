@@ -1,0 +1,51 @@
+-- A.Schulz
+-- 2015-12-08
+-- $m/%PDMSUI%\des\MacSortHierar.mac
+-----------------------------------------------------------------
+-- Macro for sorting hierarchy
+-- Works on SITE AND ZONE AND STRU LEVEL
+-----------------------------------------------------------------
+	 !CE = !!CE
+	 -- VAR !type type			$* PML1
+ 	 !type = !ce.type  			$* PML2
+	 !members = object ARRAY()
+	 
+	 if !CE.type.eq(|SITE|) OR !CE.type.eq(|ZONE|) OR !CE.type.eq(|STRU|) THEN
+		 VAR !members EVALUATE NAME FOR $!Type MEMBER FOR CE	$* PML1
+
+		 -------- NO MEMBERS EXIT SORTING --------------------
+		 if !members.unset() THEN					$* NO ELEMs IN ARRAY
+		 	 $p No members found for  $!CE.name		$* NO ELEMs IN ARRAY
+			 GOLABEL /ErrorOccurred					$* EXIT
+		 endif
+		 -------- NO MEMBERS EXIT SORTING --------------------
+
+		 -------- GET FIRST ELEMENT AND SORT ARRAY -----------
+		 !memFirst = !members[1]					$* GET FIRST MEMBER OF ARRAY
+		 !members.sort()							$* SORT ARRAY ALPHA
+	 	 reorder $!members[1] before $!memFirst		$* REORDER MEMBER BY ALPHA
+	     HANDLE (2, 614)
+			 $p Unable to claim element $!members[1]	$* ERROR ON CLAIMING ELEMENT
+			 GOLABEL /ErrorOccurred						$* EXIT
+		 ENDHANDLE
+		 -------- GET FIRST ELEMENT AND SORT ARRAY -----------
+
+		 !memFirst = !members[1]					$* NEW FIRST MEMBER
+		 !memAfter = !memFirst						$* REORDER ALWAYS LAST ORDERED ELEMENT
+
+ 		 -------- SORTING ELEMENTS ---------------------------
+		 do !i from 2 to !members.size()
+			 $!type										$* GO OWNER LEVEL
+			 reorder $!members[$!i] after $!memAfter	$* REORDER AFTER
+			 HANDLE (2, 614)
+				 $p Unable to claim element $!members[$!i]	$* ERROR ON CLAIMING ELEMENT
+				 GOLABEL /ErrorOccurred						$* EXIT
+			 ENDHANDLE
+		     !memAfter = !members[!i]						$* ELEMENT TO BE SORTED AFTER
+		 enddo
+		 $p Sorted $!type element $!ce.name
+ 		 -------- SORTING ELEMENTS ---------------------------
+	 endif
+
+	 LABEL /ErrorOccurred
+-----------------------------------------------------------------

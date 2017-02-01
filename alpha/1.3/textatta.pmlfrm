@@ -1,0 +1,97 @@
+kill !!textatta
+
+setup form !!textatta
+	!this.formrevision  = '1.0'
+	!this.formtitle     = 'Text Atta manipulation'
+	!this.initcall      = '!this.init()'
+	!this.cancelcall    = '!This.close()'
+	
+	path down
+	list .attlist 'Atta list for pipe' callback '!this.showAtta()'single width 37 height 25 
+	button .setCE 'CE' at xmin form ymax form call '!this.getCE()'
+	text .text1 'Pipe' width 35 is string
+	text .comm 'Comment' callback '!this.editComm' width 45 is string
+exit
+
+define method .init()
+	!this.attlist.clear()
+	!this.text1.setEditable(FALSE)	
+	!this.comm.setEditable(TRUE)
+endmethod
+
+define method .getCE()
+		!this.attlist.clear()
+		unenhance all
+		aid clear all
+		!tempCE = ce
+		!oldCE = ce
+		
+		--pipe element
+		if (!tempCE.type neq('PIPE')) then
+			owner
+			!tempCE = ce
+			--bran
+			if (!tempCE.type neq('PIPE')) then
+			owner
+			!tempCE = ce
+				--pipe
+				if (!tempCE.type neq('PIPE')) then
+					$!oldCE
+					!currentElement = ce
+				else
+					!currentElement = ce
+					
+				endif
+			else
+				!currentElement = ce
+				
+			endif
+		else
+			!currentElement = ce
+			
+		endif
+        !elementName    =       !currentElement.Name
+        !this.text1.val=       !elementName
+		enhance ce colour 1
+		!this.getAttas()
+		
+endmethod
+
+define method .close()
+        AID CLEAR ALL
+		unenhance all
+endmethod
+
+define method .getAttas()
+	!memory =       ce
+	var !branches collect all bran for $!this.text1.val
+	
+	do !i index !branches
+		!branch =       !branches[$!i].dbref()
+		!hBore  =       !branch.hBore
+		
+		var !attas collect all atta for $!branch
+		
+		do !j index !attas
+			!atta = 	!attas[$!j].dbref()
+			!attaname = !atta.stext
+			!this.attlist.add(!attaname)
+		enddo
+	enddo
+endmethod
+
+define method .showAtta()
+	aid clear all
+	!element = !this.attlist.selection()
+	$!element
+	!elementComm = !!ce.stext
+	aid text (stext) at at ce
+	!this.comm.val=!elementComm
+endmethod
+
+define method .editComm()
+	!!ce.stext = !this.comm.val
+	handle any
+		$p ERROR - wrong element
+	endhandle
+endmethod
