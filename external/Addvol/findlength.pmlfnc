@@ -1,0 +1,52 @@
+------------------------------------------------------------------------
+-- Macro:                  * findlength => 
+-- TYPE:                   * Function
+-- Description:            * Function will find length of center line going 
+--                           across volume for SCTN or IL TUBE
+-- Author:                 * ROBERT VANCISIN
+-- Last modification:      * 30.01.2005
+------------------------------------------------------------------------
+define function !!findlength(!LineP is ANY,!ArrayPlane is ARRAY,!myform is ANY) is REAL
+  !Ltle = 0
+  !LtlAr = ARRAY()
+  !PosAr = ARRAY()
+  do !a from 1 to !ArrayPlane.size()
+    !FlagIntTu1 = TRUE
+    !Pos[$!a] = !LineP.Intersection(!ArrayPlane[$!a])
+    handle any
+      !FlagIntTu1 = FALSE
+    endhandle
+    if (!FlagIntTu1 eq TRUE and !a le (!ArrayPlane.size() - 1)) then
+      Pin1 at $!Pos[$!a]
+      !b = !a + 1
+      do !c from 1 to !ArrayPlane.size()
+        !FlagIntTu2 = TRUE
+        if (!c ne !a) then
+          !Pos[$!b] = !LineP.Intersection(!ArrayPlane[$!c])
+          handle any
+            !FlagIntTu2 = FALSE
+          endhandle
+          if (!FlagIntTu2 eq TRUE) then
+            Pin2 at $!Pos[$!b]
+            !LineAB = Object Line(!Pos[$!a],!Pos[$!b])
+            !PosMidl = !LineAB.Proportion(0.5)
+            Pin3 at $!PosMidl
+            !FlagMidlTub = !!findppoint('Pin3',!myform)
+            if (!FlagMidlTub eq TRUE) then
+              var !Ltlet const dist Pin1 to Pin2
+              !LtlAr.append(real('$!Ltlet'))
+              !PosAr.append(!Pos[$!b])
+            endif
+          endif
+        endif
+      enddo
+    endif
+  enddo
+  !LtlAr   = !LtlAr.Sort().Invert()
+  !Length  = !LtlAr[1]
+  handle any
+    !Length = 0
+  endhandle
+  Pin1 off  Pin2 off Pin3 off
+  return !Length
+endfunction

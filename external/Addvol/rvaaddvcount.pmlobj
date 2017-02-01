@@ -1,0 +1,211 @@
+------------------------------------------------------------------------
+-- Macro:              * rvafaddvol.pmlfrm - ADD VOLUME
+-- Author:             * ROBERT VANCISIN
+-- Last modification:  * 05.02.2004
+------------------------------------------------------------------------       
+-- File:            rvaaddvcount.pmlobj           
+-- Type:            new defined object
+-- Group:           UTILITIES
+-- Module:          Design
+--
+-- Last modified by Author: RVA Date: 01.06.2004
+--                  Revision: 1.2 $
+-- Description:     this part of program will count WEIGHT of choosen PIPING 
+--                  compenent occured in VOLUME and display
+------------------------------------------------------------------------
+define object rvaaddvcount
+   member    .AWeightP     is ARRAY
+   member    .TWeight      is REAL        $* Total weight
+   member    .Brweig       is STRING      $* branch weight (material) 
+   member    .Briwei       is STRING      $* branch weight + insul
+   member    .Brwiwe       is STRING      $* branch weight + wet + insul
+   member    .Gweigh       is STRING      $* gross weight of SCTN
+   member    .ArrayAtt     is ARRAY
+   member    .WeigATT      is STRING      $* here is set att for weight
+endobject
+------------------------------------------------------------------------
+--- Method rvaaddvcount() - default constructor
+------------------------------------------------------------------------
+define method .rvaaddvcount()
+endmethod
+------------------------------------------------------------------------
+--- Method SetVar() - default constructor - here is possible to set another att
+------------------------------------------------------------------------
+define method .SetVar(!Sel is Real,!myform is ANY)
+  !this.ArrayAtt =  ARRAY()
+  !this.Brweig   = 'BRWEIG'        $* branch weight (material) 
+  !this.Briwei   = 'BRIWEI'        $* branch weight + insul
+  !this.Brwiwe   = 'BRWIWE'        $* branch weight + wet + insul
+  !this.ArrayAtt.append(!this.Brweig)
+  !this.ArrayAtt.append(!this.Briwei)
+  !this.ArrayAtt.append(!this.Brwiwe)
+  !this.WeigATT  = !this.ArrayAtt[$!Sel]
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method which prepare Volume coordinates and calls further object for claculation of WEIGHT
+-----------------------------------------------------------------------------------------------
+define method .VolCoordinate(!Sel is Real,!myform is ANY)
+  !ResultAr = !myform.ResulLim
+  !Corn1 = $!ResultAr[1] $!ResultAr[2] $!ResultAr[3]  $!ResultAr[4]  $!ResultAr[5]  $!ResultAr[6]
+  !Corn2 = $!ResultAr[8] $!ResultAr[9] $!ResultAr[10] $!ResultAr[11] $!ResultAr[12] $!ResultAr[13]
+  !Pos1  = Object Position(|$!Corn1|)
+  !Pos2  = Object Position(|$!Corn2|)
+  !PlanW = Object Plane(!Pos1,Y is N and Z is E)
+  !PlanE = Object Plane(!Pos2,Y is N and Z is W)
+  !PlanS = Object Plane(!Pos1,Y is E and Z is S)
+  !PlanN = Object Plane(!Pos2,Y is E and Z is N)
+  !PlanD = Object Plane(!Pos1,Y is N and Z is D)
+  !PlanU = Object Plane(!Pos2,Y is N and Z is U)
+  !ArrayPlane = ARRAY()
+  !ArrayPlane.append(!PlanW)
+  !ArrayPlane.append(!PlanE)
+  !ArrayPlane.append(!PlanS)
+  !ArrayPlane.append(!PlanN)
+  !ArrayPlane.append(!PlanD)
+  !ArrayPlane.append(!PlanU)
+  if     (!Sel le 3) then                $* ('PIPE','PIPE+I','PIPE+W+I')
+    !what = 'BRAN'
+    !this.SetVar(!Sel,!myform)
+    !this.CollectMem(!myform,!what,!Corn1,!Corn2,!ArrayPlane)   
+  elseif (!Sel eq 4) then                $* ('SCTN')
+      !what = 'SCTN'
+  elseif (!Sel eq 5) then                $* ('PRIM')
+    !what = 'BOX CYLI CONE DISH PYRA SNOU SCYL CTOR RTOR EXTR REVO PANE'
+    !rvaaddvprimit = Object rvaaddvprimit()
+    !rvaaddvprimit.CollectMem(!myform,!what,!Corn1,!Corn2,!ArrayPlane)
+  endif
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method which collect all 'PIPE/WAT+PIPE/SCTN/PRIMITIEVES' members call Object !rvaaddvcont 
+-----------------------------------------------------------------------------------------------
+define method .CollectMem(!myform is ANY,!Types is STRING,!Corn1 is ANY,!Corn2 is ANY,!ArrayPlane is ARRAY)
+  -- ** here updates drawlist what is added to display
+  var selector !!CDADDREM.DRAWLIST CLEAR
+    draw
+    exit
+    !Drawlist = !!CDADDREM.drawlist.dtext
+  !DrawlistT = !Drawlist
+  !Drawlist  = ARRAY()
+  do !a from 1 to !DrawlistT.size()  $* if will be added zones or sites - in later versions of pdms
+    var !ArrayMAr evaluate (NAME) for all ($!Types) for $!DrawlistT[$!a]
+    !Drawlist.appendarray(!ArrayMAr)
+  enddo
+  var !ArrayMem evaluate (NAME) for all ($!Types) WITHIN $!Corn1 to $!Corn2
+  !ResArrMem = !Drawlist.Intersect(!ArrayMem)    $* only 'TYPES of element' which are added on the screen
+  !this.TWeight  = 0
+  !ArrayIncl     = ARRAY()
+  $P *** REPORT OF $!myform.CHOOSE1.pickedField
+  -----------------------------------------------------
+  do !a from 1 to !ResArrMem.size()
+    $!ResArrMem[$!a]
+    !CEB = CE
+    !ArrayIncl.Append(!ResArrMem[$!a])
+    var !ArrelemInV collect all (bran memb) WITHIN $!Corn1 to $!Corn2 for $!ResArrMem[$!a]
+    var !ArrelemInB collect all for $!ResArrMem[$!a]
+    !APos = !ArrelemInB.findfirst('$!CEB.refno') 
+    !ArrelemInB.remove(!APos)                         $* TYPE BRAN IS REMOVED
+    !FlagInside = TRUE
+    !this.AWeightP.clear()
+    !WeightH = 0
+    do !b from 1 to !ArrelemInV.size()
+      $!ArrelemInV[$!b]
+      !CE = CE
+      if (!CE.type eq 'TUBI') then
+        Pin1 at PA of IL TUBE of CE
+        Pin2 at PL of IL TUBE of CE
+        !Lengt = ITLE                                  $* ITLE for IL tube LTLE for comp
+        !AnPin1 = !!findppoint('Pin1',!myform)
+        !AnPin2 = !!findppoint('Pin2',!myform)
+        if (!AnPin1 eq TRUE and !AnPin2 eq TRUE) then  $* all ltle in in volume
+          !Weight = !this.Execute(!this.WeigATT,!myform)
+        else
+          !LengtIn   = !this.PriesCline(!ArrayPlane,!myform,!AnPin1,!AnPin2)
+          !WeightAllIlte = !this.Execute(!this.WeigATT,!myform)
+          !Weight = !WeightAllIlte * !LengtIn / !Lengt
+          !Lengt = !LengtIn
+          !FlagInside = FALSE
+        endif
+        !this.AWeightP.append('$!Weight kg for $!CE.name LTLE = $!Lengt mm') 
+      else
+        !Weight = !this.Execute(!this.WeigATT,!myform)
+        !this.AWeightP.append('$!Weight kg for $!CE.name $!CE.type') 
+      endif
+      !WeightH = !WeightH + !Weight                     $* collection of member's weight in volume
+    enddo
+    $!ResArrMem[$!a]
+  ----------------- end of investigation is in volume or not ce or brnn --------------
+    !DiffArr = !ArrelemInB.Difference(!ArrelemInV)      $* BRAN IS NOT ALL in VOLUME
+    if (!DiffArr.size() gt 0) then
+      !FlagInside = FALSE
+      $P BRAN $!ResArrMem[$!a] IS NOT ALL in VOLUME
+    endif
+    if (!FlagInside eq TRUE) then                       $* is included all bran in VOLUME
+     !Weight = !this.Execute(!this.WeigATT, !myform)
+     !this.TWeight  = !this.TWeight + !Weight
+    else                                                $* is included only part of bran in VOLUME
+      !this.TWeight  = !this.TWeight + !WeightH
+      $P BRAN $!ResArrMem[$!a] Weight = $!WeightH
+      do !c from 1 to !this.AWeightP.size()
+        $P --> $!this.AWeightP[$!c]
+      enddo
+    endif
+  enddo
+  $P ++++++++++++++++++++++ -------- ++++++++++++++++++++++
+  $P Total WEIGHT for $!Types-es in Volume $!Corn1 to $!Corn2
+  $P Suma = $!this.TWeight kg $!myform.CHOOSE1.pickedField
+  $P ======================================================
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method PriesTube will find Intersection of IL Tube rom PA of CE to nearest PLANE 
+--- of Volume, calculate for this length Weight P,I,W
+-----------------------------------------------------------------------------------------------
+define method .PriesCline(!ArrayPlane is ARRAY,!myform is ANY,!AnPin1 is BOOLEAN,!AnPin2 is BOOLEAN) is REAL
+  !CE = CE
+  !PosSt = PA pos of IL TUBE of CE wrt/*
+  !PosEn = PL pos of IL TUBE of CE wrt/*
+  !LineP  = Object Line( PA pos of IL TUBE of CE,PL pos of IL TUBE of CE)
+  if(!AnPin1 eq TRUE) then           $* it means !AnPin2  TRUE
+     Pin2 at PA of IL TUBE of CE     $* Posuvam P2 do P1 a hladam P1 dist Priesec
+  else                               $* it means !AnPin1  FALSE
+    if(!AnPin2 eq TRUE) then
+      !LineP  = Object Line(PL pos of IL TUBE of CE,PA pos of IL TUBE of CE)
+      Pin1 at PL of IL TUBE of CE    $* Posuvam P1 do P2 a hladam P1 dist Priesec
+    else                             $* Iba pre tuto kombinaciu bude Ltle = 0
+      !Length = !!findlength(!LineP,!ArrayPlane,!myform)
+      !LineP.delete()
+    endif
+  endif
+  if (defined(!LineP)) then
+    do !a from 1 to !ArrayPlane.size()
+      !Pos[$!a] = !LineP.Intersection(!ArrayPlane[$!a])
+      handle any
+        var !Len[$!a] 10000000001
+      endhandle
+      if (defined(!Pos[$!a]) and !LineP.OnProjected(!Pos[$!a]) eq TRUE) then
+        Pin2 at $!Pos[$!a]
+        var !Len[$!a] const dist Pin1 to Pin2
+      else
+        var !Len[$!a] 10000000000
+      endif
+    enddo
+    !Len    = !Len.Sort().Invert()
+    !Length = real(!Len[1])
+  endif
+  return !Length
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method Execute() tries to set weight attribute = !WeigATT for ce = !Cesel
+-----------------------------------------------------------------------------------------------
+define method .Execute(!WeigATT is STRING,!myform is ANY) is REAL
+  !Cesel = !myform.CHOOSE1.pickedField
+  !CE = CE
+  !CeWeight = $!WeigATT of $!CE
+  handle any
+    !CeWeight = 0
+    $P $!WeigATT for $!CE.name was not possible to set for $!Cesel
+  endhandle
+  if (!CE.type eq 'BRAN') then
+    $P $!CE.type = $!CE.name has $!WeigATT = $!CeWeight kg
+  endif
+  return !CeWeight
+endmethod

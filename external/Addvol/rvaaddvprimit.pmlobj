@@ -1,0 +1,84 @@
+------------------------------------------------------------------------
+-- Macro:              * rvafaddvol.pmlfrm - ADD VOLUME
+-- Author:             * ROBERT VANCISIN
+-- Last modification:  * 05.02.2004
+------------------------------------------------------------------------       
+-- File:                 rvaaddvprimit.pmlobj           
+-- Type:                 new defined object
+-- Group:                UTILITIES
+-- Module:               Design
+--
+-- Last modified by Author: RVA Date: 30.01.2005
+--                       Revision: 1.2 $
+-- Description:          this part of program will count WEIGHT + volume of primitives
+--                       occured in VOLUME and display
+------------------------------------------------------------------------
+define object rvaaddvprimit
+   member    .WeightP      is ARRAY
+   member    .TVolume      is REAL        $* Total volume
+   member    .TWeight      is REAL        $* Total weight
+   member    .ArrayAtt     is ARRAY
+endobject
+------------------------------------------------------------------------
+--- Method rvaaddvprimit() - default constructor
+------------------------------------------------------------------------
+define method .rvaaddvprimit()
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method which collect all 'PRIMITIEVES' members call Object !rvaaddvcont 
+-----------------------------------------------------------------------------------------------
+define method .CollectMem(!myform is ANY,!Types is STRING,!Corn1 is ANY,!Corn2 is ANY,!ArrayPlane is ARRAY)
+  var selector !!CDADDREM.DRAWLIST CLEAR
+    draw
+    exit
+  !Drawlist = !!CDADDREM.drawlist.dtext
+  var !ArrayMem evaluate (NAME) for all ($!Types) WITHIN $!Corn1 to $!Corn2
+  !ArrayIncl     = ARRAY()
+  !this.TWeight  = 0
+  !this.TVolume  = 0
+  !Stwieght = 0   !Stwolume = 0
+  !Cowieght = 0   !Cowolume = 0
+  !Brwieght = 0   !Brwolume = 0
+  $P *** REPORT OF $!myform.CHOOSE1.pickedField
+  do !values value !ArrayMem
+    $!values
+    !CE = CE
+    if (!Drawlist.findfirst(!CE.Owner.name).Set()) then
+      !Nvol   = NVOLUM
+      !NvolDM = !Nvol * 1exp-6
+      if (!CE.Owner.type inset ('EQUI','SUBE')) then
+        !density  = 7800                   $* STEEL kg/m3
+        !Mater    =  'STEEL'
+      else
+        if (matc(upc(!CE.Owner.purp),'CONC') gt 0) then
+          !density  = 2500                 $* CONCRATE kg/m3
+          !Mater    =  'CONC'
+        else
+          !density  = 2000                 $* BRICK kg/m3
+          !Mater    =  'BRICK'
+        endif
+      endif
+     !Weight = !Nvol * !density * 1exp-9
+      if     (!Mater eq 'STEEL') then
+        !Stwolume = !Stwolume + !NvolDM 
+        !Stwieght = !Stwieght + !Weight
+      elseif (!Mater eq 'CONC') then  
+        !Cowolume = !Cowolume + !NvolDM
+        !Cowieght = !Cowieght + !Weight
+      else  
+        !Brwolume = !Brwolume + !NvolDM   
+        !Brwieght = !Brwieght + !Weight	  
+      endif
+      $P $!values Weight = $!Weight kg with Volume = $!Nvol dm3 (Nett Vol) $!CE.typ  Mater $!Mater
+      !this.TWeight  = !this.TWeight  + !Weight
+      !this.TVolume  = !this.TVolume  + !NvolDM
+     endif
+  enddo
+  $P ++++++++++++++++++++++ -------- ++++++++++++++++++++++
+  $P Steel    elements cca $!Stwieght  kg  with volume $!Stwolume
+  $P Concrete elements cca $!Cowieght  kg  with volume $!Cowolume
+  $P Brick    elements cca $!Brwieght  kg  with volume $!Brwolume
+  $P Total weight for $!Types in Volume $!Corn1 to $!Corn2
+  $P Suma = $!this.TWeight kg  with overal volume
+  $P ======================================================
+endmethod

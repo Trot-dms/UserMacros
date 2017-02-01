@@ -1,0 +1,705 @@
+------------------------------------------------------------------------
+-- Macro:              * rvafaddvol.pmlfrm        
+-- Author:             * ROBERT VANCISIN
+-- Contatct e-mail:    * rvancisin@yahoo.com  vancisin@aminet.com
+-- Contatct tel:       * 00421 907 280210
+-- Last modification:  * 19.07.2006
+------------------------------------------------------------------------       
+-- File:            rvafaddvol.pmlfrm        
+-- Type:            form
+-- Group:           UTILITIES
+-- Module:          Design
+--
+-- Last modified by Author: RVA Date: 25.01.2004
+--                  Revision: 1.1 $
+-- Description:     this macro search around CE volume chodesn type component
+--                  and add/remove from display
+-- Note:            Macro must be installed in pmllib directory
+-- Run  macro       !!loadaddrem()
+------------------------------------------------------------------------
+kill !!rvafaddvol
+setup form !!rvafaddvol
+ !this.formtitle     = 'ADD VOLUME from selected CE'
+ !this.callback      = '!this.init()'
+  bar
+    !this.bar.add('SHOW ME IN VOLUME','CHOOSE1') 
+    !this.bar.add('MANUAL','CHOOSE2') 
+  menu .CHOOSE1
+    !this.CHOOSE1.add('CALLBACK','WEIGHT OF PIPES','!this.CollectMem(1)')
+    !this.CHOOSE1.add('CALLBACK','WEIGHT OF PIPES+I','!this.CollectMem(2)')
+    !this.CHOOSE1.add('CALLBACK','WEIGHT OF WATER+P+I','!this.CollectMem(3)')
+    !this.CHOOSE1.add('CALLBACK','WEIGHT OF SCTN','!this.CollectMem(4)')
+    !this.CHOOSE1.add('CALLBACK','WEIGHT OF PRIMITIVIES','!this.CollectMem(5)')
+  menu .CHOOSE2
+    !this.CHOOSE2.add('CALLBACK','READ ME','!this.ShowManual()')
+  frame .Dates  'Define CE and VOLUME!' at xmin+.5
+    button  .CEadd        'PICK'         CALL |!this.SelectCE(1)|                at xmin+1           y.8
+    button  .CEaddC       ' CE '         CALL |!this.SelectCE(2)|                at xmax.CEadd+1     ymin.CEadd
+    text    .CeaddCl      ''             CALL |!this.SelectCE(3)|                at xmax.CEaddC+1    ymin.CEadd       width 22 scroll  30 is STRING
+    option  .BuOWN        ''             CALL |!this.SelectCE(4)|                at xmin.CEadd       ymax.CEaddC+.3   width 9 
+    text    .CeaddTY      'TYPE:'                                                at xmax.BuOWN+1.2   ymin.BuOWN       width 4   scroll 4  is STRING
+    text    .CurELEM      'DIST:'        CALL |!this.SelectCE(5)|                at xmax.CeaddTY+1   ymin.BuOWN       width 5   scroll 10 is REAL
+    option  .CurTyp       'ADD TYPPES:'                                          at xmin.CEadd       ymax.BuOWN+.3    width 4
+    button  .CurCOL       'COLOUR'       CALL |!!rvasetcolour(!!rvafaddvol)|     at xmin.CurTyp      ymax.CurTyp+.3
+    toggle  .AutoCoB      'AUTOCOLOUR  ' CALL |!this.CheckAutoC()|               at xmax.CurCOL+1    ymin.CurCOL
+    text    .Ignor        'IGNORE:'      CALL |!this.AddNew(1)|                  at xmin.BuOWN       ymax.CurCOL+.3   width 7   scroll 15 is STRING
+    list    .List1        ''                                                     at xmax.AutoCoB+2   ymin.CurTyp      MULTIPLE  width  9  height 4
+    button  .REMig        'REM'          CALL |!this.AddNew(2)|                  at xmax.Ignor+.7    ymin.Ignor
+    option  .Course       'ENLARGE  '                                            at xmin.BuOWN       ymax.REMig+.6    width 3
+    button  .ButtB        ' + '          CALL |!this.CountBox(1 ,'+',2,FALSE)|   at xmax.Course+1    ymax.REMig+.6  
+    button  .ButtS        ' - '          CALL |!this.CountBox(1 ,'-',2,FALSE)|   at xmax.ButtB+1.2   ymax.REMig+.6  
+    option  .ListC        ''                                                     at xmax.ButtS+1.2   ymax.REMig+.6    width 6
+  exit
+  text      .Zobraz       'WITH STRING:'                                         at xmin.CEadd       ymax.Dates+.5    width 21 scroll 25 is STRING 
+  toggle    .ZobrazB      ''          CALL |!this.CecktextB()|                   at xmax.Zobraz+1    ymin.Zobraz 
+  button    .APPLY        'ADD ELEM'  CALL |!this.CheckApply('ADD')|             at xmin.CEadd-1     ymax.Zobraz+.5
+  option    .APPLYR       ''          CALL |!this.CheckApply('REM')|             at xmax.APPLY+.5    ymin.APPLY       width 9
+  button    .Clip         'CLIPBOX'   CALL |!this.ClippV(1)|                     at xmax.APPLYR+.5   ymin.APPLY    
+  button    .DISMISS      'DISMISS'   CALL |!this.DissmisM()|                    at xmax.Clip+.5     ymin.APPLY   
+  !this.DISMISS.Background   = 'BRIGHTRED' 
+  !this.CEadd.Background     = 'BRIGHTRED' 
+  !this.CEaddC.Background    = 'BLUE' 
+  member    .FoundElem    is ARRAY   $* for found elements
+  member    .RemainElem   is ARRAY   $* for elements before adding
+  member    .ArrayList    is ARRAY
+  member    .VolBoxF      is STRING
+  member    .NewVolume    is ARRAY
+  member    .Xleng        is REAL
+  member    .Yleng        is REAL
+  member    .Zleng        is REAL
+  member    .BoxPos       is STRING
+  member    .ResulLim     is ARRAY
+  member    .StoreColour  is REAL  
+exit
+-------------------------------------------------------------------------------------------------
+define method .Init()
+  !DText2 = Array()  !DText3 = Array()  !DText4 = Array()  
+  !DText5 = Array()  !DText6 = Array()  !DText7 = Array()
+
+  !DTEXT2.APPEND(|ALL|)          !DTEXT2.APPEND(|EQUI|)         !DTEXT2.APPEND(|PIPE|)  !DTEXT2.APPEND(|BRAN|)
+  !DTEXT2.APPEND(|HVAC|)         !DTEXT2.APPEND(|FRMW|)         !DTEXT2.APPEND(|SBFR|)  !DTEXT2.APPEND(|SCTN|)         
+  !DTEXT2.APPEND(|STRU|)         !DTEXT2.APPEND(|SUBS|)         !DTEXT2.APPEND(|HANG|)  !DTEXT2.APPEND(|REST|)     
+  
+  !DTEXT3.APPEND(|TEST|)
+  
+  !DText4.APPEND(|W|)            !DText5.APPEND(|SOLID|)        !DText6.APPEND(|OWNER|) 
+  !DText4.APPEND(|S|)            !DText5.APPEND(|12%|)          !DText6.APPEND(|PICK NEXT|) 
+  !DText4.APPEND(|D|)            !DText5.APPEND(|25%|)
+  !DText4.APPEND(|E|)            !DText5.APPEND(|50%|)
+  !DText4.APPEND(|N|)            !DText5.APPEND(|75%|)
+  !DText4.APPEND(|U|)            !DText5.APPEND(|100%|)
+  !DText4.APPEND(|All|) 
+  
+  !DText7.APPEND(|REM BOX|)
+  !DText7.APPEND(|REM ADDED|)
+
+  !this.StoreColour       = 253   $* KHAKI
+  !this.CurCOL.Background = !this.StoreColour
+  !this.CurTyp.Dtext      = !DTEXT2
+  !this.List1.Dtext       = !DTEXT3
+  !this.Course.Dtext      = !DTEXT4
+  !this.ListC.Dtext       = !DTEXT5
+  !this.BuOWN.Dtext       = !DTEXT6
+  !this.APPLYR.Dtext      = !DTEXT7
+  !this.ArrayList         = !this.List1.Dtext
+  !this.CurELEM.VAL       = 100
+  !this.Course.VAL        = 7 
+  !this.Clip.Background   = !this.Background
+  var !Stat autocolour mode
+  if (upc('$!stat') eq 'ON') then
+    !this.AutoCoB.val = TRUE
+    !this.CheckAutoC()
+  else
+    -- !this.APPLY.Background = !!colourselect.currentColour.val
+    !this.APPLY.Background   = !this.CurCOL.Background
+  endif
+  !this.APPLY.Active = FALSE
+  !this.APPLYR.Active = FALSE
+endmethod
+------------------------------------------------------------------------
+-- Method ShowManual calls WORD and shows to user Manual
+-- called from "bar" !this.CHOOSE2.add('CALLBACK','READ ME','!this.ShowManual()')
+------------------------------------------------------------------------
+define method .ShowManual()
+  !MyFile = !this.GetmePath()
+  !MyFileM = Object File (!MyFile.name() + '/MANUAL.ADD-REM.doc')
+  SYSCOM 'START WINWORD.exe $!MyFileM'
+  handle any
+    !!Alert.Warning(|$!!Error.text|)
+  endhandle
+endmethod
+------------------------------------------------------------------------
+-- Method GetmePath  returns - full path of !this
+-- called from method .ShowManual()
+------------------------------------------------------------------------
+define method .GetmePath() is ANY
+  !myform      = lowc('$!this') + '.pmlfrm'
+  !pathfile    = Object File(!!pml.getpathname(!myform))
+  !pathinstall = !pathfile.directory()
+  return !pathinstall
+endmethod
+----------------------------------------------------------------------------------------------
+--- Method Set button colour
+----------------------------------------------------------------------------------------------
+define method .SetCol(!mycolour is ANY)
+  !this.APPLY.Background  = !mycolour
+  !this.CurCOL.Background = !mycolour
+  !this.StoreColour       = !this.APPLY.Background
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method which check active-disactive options color and trasparency
+-----------------------------------------------------------------------------------------------
+define method .CheckAutoC()
+  if (!this.AutoCoB.val eq TRUE) then
+    !this.CurCOL.active = FALSE
+    !this.ListC.active  = FALSE
+    !!gphColEdit.autoColourG.val = TRUE
+    handle any
+    endhandle
+    autocolour ON
+    !this.CurCOL.Background = !this.Background
+    !this.APPLY.Background  = !this.Background
+  else
+    !this.CurCOL.active = TRUE
+    !this.ListC.active  = TRUE
+    !this.SetCol(!this.StoreColour)
+    !!gphColEdit.autoColourG.val = FALSE
+    handle any
+    endhandle
+    autocolour OFF
+  endif
+endmethod
+----------------------------------------------------------------------------------------------
+--- Method ADDing to IGNORE list and REMoving from it
+----------------------------------------------------------------------------------------------
+define method .AddNew(!Sel is REAL)
+  !TextIG = replace(!this.Ignor.Val,' ','')
+  handle (2,754) $* empty Ignor.Val
+  endhandle
+  !this.ArrayList = !this.List1.Dtext
+  if (!Sel eq 1) then
+    if (!TextIG ne '') then
+      if (!this.ArrayList.FindFirst(!TextIG).Unset()) then
+        !this.ArrayList.append(!TextIG)
+        !this.Ignor.Val = ''
+        !this.List1.Dtext = !this.ArrayList
+      endif
+    endif
+  else
+    !Arraysele = !this.List1.Selection()
+    do !a from 1 to !Arraysele.Size()
+      !Pos = !this.ArrayList.FindFirst(!Arraysele[$!a])
+      !this.ArrayList.Remove($!pos)
+    enddo
+    !this.List1.Dtext = !this.ArrayList
+  endif
+endmethod
+----------------------------------------------------------------------------------------------
+-- Method CE - Show NAME and TYPE of entered CE at the same time cals methode for
+-- drawing of lines - edges of volume !this.CountBox
+-----------------------------------------------------------------------------------------------
+define method .SelectCE(!Slektor is REAL)
+  var !Stat autocolour mode
+  if (upc('$!stat') eq 'ON') then
+    !this.AutoCoB.val = TRUE
+  else
+    !this.AutoCoB.val = FALSE
+  endif
+  !this.CheckAutoC()
+  prec var di 0 dp
+  !FlagSTOP = FALSE
+  !Sel1 = !this.Course.VAL
+  if  (!Slektor eq 5) then
+    if (replace('$!this.CeaddCl.Val',' ','') eq '') then
+      !this.SelectCE(2)
+    endif
+  endif
+  if (!Slektor eq 1) then       $* called from button PICK = .CEadd
+    id@
+    !this.FillIN()
+  elseif  (!Slektor eq 2) then  $* called from button PICK = .CEaddC or !Slektor eq 5
+    if (TYPE ne 'WORL') then
+      !this.FillIN()
+    else
+      !FlagEror = TRUE
+      !!Alert.Warning(|You can not select WORLD!|)
+    endif
+  elseif  (!Slektor eq 3) then  $* called from text gadget PICK .CeaddCl
+    !Cpom = STRING()
+    !Bpom = substring(|$!this.CeaddCl.Val|,1,1)
+    if (|$!Bpom| eq |=|) then
+      !Dpom = |$!this.CeaddCl.Val|
+    else
+     !Cpom = '/'+|$!this.CeaddCl.Val|
+     !Cpom = replace('$!Cpom','//','/')
+    endif
+    $!Cpom
+    handle any
+      !!Alert.Warning(|Warning, NAME $!this.CeaddCl.Val does not exist in the MODEL!|)
+      $P Warning, NAME $!this.CeaddCl.Val does not exist in MODEL!
+      !this.CeaddCl.Val = ||
+      !FlagSTOP = TRUE  
+    endhandle
+    if (!FlagSTOP eq FALSE) then
+      !this.CeaddCl.Val = !Cpom
+    endif
+  elseif  (!Slektor eq 4) then  $* called from option OWNER/PICK  .BuOWN
+    -- check owner how high can jump up
+    if (!this.BuOWN.val eq 1) then
+      if (replace(|$!this.CeaddCl.Val|,' ','') ne '') then
+        $!this.CeaddCl.Val
+      endif
+      if (TYPE ne 'SITE' and TYPE ne 'WORL') then
+        OWN
+        !this.FillIN()
+      elseif (TYPE eq 'SITE') then
+        !this.FillIN()
+      else
+        !FlagSTOP = TRUE
+        !!Alert.Warning(|CAN NOT BE SELECTED WORLD !!!|)
+      endif
+    else                        $* called from text gadegt dist .CurELEM
+    -- can be idetifind component about its volume will be existing volume enlarged
+      if (replace(|$!this.CeaddCl.Val|,' ','') eq '') then
+        !FlagSTOP = TRUE
+        !!Alert.Warning(|Warning, plese select hierarchy = CE !!!|)
+      else
+        PROMPT DISMISS
+        PROMPT ON
+        PROMPT OFF
+        PROMPT LOAD ESCAPE |IDENTIFY ELEMENT IN WHICH WILL BE ENLARGED VOLUME |
+        !this.EnlargV() 
+        !this.CountBox(!Sel1 , '+',1,TRUE)
+        !FlagSTOP = TRUE
+        !FlagID   = TRUE
+        PROMPT DISMISS
+      endif
+    endif
+  endif
+  if (!FlagSTOP eq FALSE) then 
+    !this.APPLY.Active = TRUE
+    !this.APPLYR.Active = TRUE
+    if  (!Slektor ne 5) then
+      !this.CountBox(!Sel1 , '+',1,FALSE)
+    else
+      !this.CountBox(!Sel1 , '+',2,FALSE)
+    endif
+  else
+    if (undefined(!FlagID)) then
+      !this.APPLY.Active = FALSE
+      !this.APPLYR.Active = FALSE
+    endif
+  endif
+  if  (!Slektor ne 5) then     $* only for new pick, ce , owner element I will ask for added elements to screen
+    !this.Remainelements()
+  endif
+endmethod
+----------------------------------------------------------------------------------------------
+--- Method DRAWing of AID Lines - VOLUME
+--- Method called from buttons .ButtB or .ButtS; or from method SelectCE
+-----------------------------------------------------------------------------------------------
+define method .CountBox(!Sel1 is Real, !Sel2 is STRING, !Sel3 is REAL, !SelB is Boolean)
+  if (replace(|$!this.CeaddCl.Val|,' ','') eq '') then
+   !!Alert.Warning(|Warning, plese select hierarchy = CE !!!|)
+  else
+    if (match('$!this.CurELEM.Val','-') gt 0) then
+      if (!Sel2 eq '+') then
+        !Sel4 = real(replace('$!Sel2','+','') + '$!this.CurELEM.Val')
+      else
+        !Sel4 = abs(real('$!this.CurELEM.Val'))
+      endif
+    else
+        !Sel4 = real('$!Sel2'+'$!this.CurELEM.Val')
+    endif
+    -- Enlargement only for CE
+    if (!SelB eq FALSE) then
+      !this.NewVolume.clear()
+      !Sel5 = !Sel1
+      if (!Sel3 eq 1) then
+        var !VolBox Volume $!this.CeaddCl.Val  $*Gvol Lvol
+        !AAx = !VolBox.split() 
+      else
+        !Sel5  = !this.Course.VAL
+        !ResultAr = !this.CreateVlim()
+        !AAx = !ResultAr
+        !Corn1 = $!ResultAr[1] $!ResultAr[2] $!ResultAr[3] $!ResultAr[4] $!ResultAr[5] $!ResultAr[6]
+        !Corn2 = $!ResultAr[8] $!ResultAr[9] $!ResultAr[10] $!ResultAr[11] $!ResultAr[12] $!ResultAr[13]
+        !VolBox = '$!Corn1 to $!Corn2'  
+      endif
+      !this.NewVolume = !AAx
+    -- Enlargement of existing volume about new picked element
+    else
+      !ResultAr = !this.NewVolume
+      !Corn1 = $!ResultAr[1] $!ResultAr[2] $!ResultAr[3] $!ResultAr[4] $!ResultAr[5] $!ResultAr[6]
+      !Corn2 = $!ResultAr[8] $!ResultAr[9] $!ResultAr[10] $!ResultAr[11] $!ResultAr[12] $!ResultAr[13] 
+      !VolBox = '$!Corn1 to $!Corn2'
+      !AAx = !ResultAr
+      !Sel5 = 7
+    endif 
+    !this.VolBoxF = !VolBox
+    do !a from 1 to 12
+      aid  clear line  $!a
+      handle any
+      endhandle
+    enddo
+    !AAxP = !AAx
+    -- how many sides will be enlarged
+    if (!Sel5 eq 7) then
+      !i = 1     !n = 6       $* all 6 sides
+    else
+      !i = !Sel5 !n = !Sel5
+    endif
+    do !a from $!i to $!n     $* only 1 selected side
+      if (!a le 3) then
+        !b = 2 * $!a - 1
+        !c = 2 * $!a
+        !bb = !b + 7
+        !cc = !c + 7
+        !ResultR = !this.Newlimits(!AAxP,!b,!c,!bb,!cc, !Sel4)
+        !AAx[$!c] = '$!ResultR'
+      else
+        !b = 2 * $!a 
+        !c = 2 * $!a + 1
+        !bb = !b - 7
+        !cc = !c - 7
+        !ResultR = !this.Newlimits(!AAxP,!b,!c,!bb,!cc, !Sel4)
+        !AAx[$!c] = '$!ResultR'
+      endif
+    enddo
+    
+    !LineESD = Object Line($!AAx[1] $!AAx[2] $!AAx[3]  $!AAx[4]  $!AAx[5]  $!AAx[6],  $!AAx[8] $!AAx[9] $!AAx[3]  $!AAx[4]  $!AAx[5]  $!AAx[6])
+    !LineESU = Object Line($!AAx[1] $!AAx[2] $!AAx[3]  $!AAx[4]  $!AAx[12] $!AAx[13], $!AAx[8] $!AAx[9] $!AAx[3]  $!AAx[4]  $!AAx[12] $!AAx[13])
+    !LineEND = Object Line($!AAx[1] $!AAx[2] $!AAx[10] $!AAx[11] $!AAx[5]  $!AAx[6],  $!AAx[8] $!AAx[9] $!AAx[10] $!AAx[11] $!AAx[5]  $!AAx[6])
+    !LineENU = Object Line($!AAx[1] $!AAx[2] $!AAx[10] $!AAx[11] $!AAx[12] $!AAx[13], $!AAx[8] $!AAx[9] $!AAx[10] $!AAx[11] $!AAx[12] $!AAx[13])
+    
+    !LineNWD = Object Line($!AAx[1] $!AAx[2] $!AAx[3] $!AAx[4] $!AAx[5]  $!AAx[6],  $!AAx[1] $!AAx[2] $!AAx[10] $!AAx[11] $!AAx[5]  $!AAx[6])
+    !LineNWU = Object Line($!AAx[1] $!AAx[2] $!AAx[3] $!AAx[4] $!AAx[12] $!AAx[13], $!AAx[1] $!AAx[2] $!AAx[10] $!AAx[11] $!AAx[12] $!AAx[13])
+    !LineNED = Object Line($!AAx[8] $!AAx[9] $!AAx[3] $!AAx[4] $!AAx[5]  $!AAx[6] , $!AAx[8] $!AAx[9] $!AAx[10] $!AAx[11] $!AAx[5]  $!AAx[6])
+    !LineNEU = Object Line($!AAx[8] $!AAx[9] $!AAx[3] $!AAx[4] $!AAx[12] $!AAx[13], $!AAx[8] $!AAx[9] $!AAx[10] $!AAx[11] $!AAx[12] $!AAx[13])
+    
+    !LineUWS = Object Line($!AAx[1] $!AAx[2] $!AAx[3]  $!AAx[4]  $!AAx[5] $!AAx[6], $!AAx[1] $!AAx[2] $!AAx[3]  $!AAx[4]  $!AAx[12] $!AAx[13])
+    !LineUES = Object Line($!AAx[8] $!AAx[9] $!AAx[3]  $!AAx[4]  $!AAx[5] $!AAx[6], $!AAx[8] $!AAx[9] $!AAx[3]  $!AAx[4]  $!AAx[12] $!AAx[13])
+    !LineUWN = Object Line($!AAx[1] $!AAx[2] $!AAx[10] $!AAx[11] $!AAx[5] $!AAx[6], $!AAx[1] $!AAx[2] $!AAx[10] $!AAx[11] $!AAx[12] $!AAx[13])
+    !LineUEN = Object Line($!AAx[8] $!AAx[9] $!AAx[10] $!AAx[11] $!AAx[5] $!AAx[6], $!AAx[8] $!AAx[9] $!AAx[10] $!AAx[11] $!AAx[12] $!AAx[13])
+    
+    -- E-W lines  dotted,dash-dot,solid,dashed can be used
+    aid line  number 1  $!LineESD.Startposition to $!LineESD.Endposition linestyle Dashed
+    aid line  number 2  $!LineESU.Startposition to $!LineESU.Endposition linestyle Dashed
+    aid line  number 3  $!LineEND.Startposition to $!LineEND.Endposition linestyle Dashed
+    aid line  number 4  $!LineENU.Startposition to $!LineENU.Endposition linestyle Dashed
+    !this.Xleng = !LineESD.Length()
+    -- N-S lines
+    aid line  number 5  $!LineNWD.Startposition to $!LineNWD.Endposition linestyle Dashed
+    aid line  number 6  $!LineNWU.Startposition to $!LineNWU.Endposition linestyle Dashed
+    aid line  number 7  $!LineNED.Startposition to $!LineNED.Endposition linestyle Dashed
+    aid line  number 8  $!LineNEU.Startposition to $!LineNEU.Endposition linestyle Dashed
+    !this.Yleng = !LineNWD.Length()
+    -- U-D lines
+    aid line  number 9  $!LineUWS.Startposition to $!LineUWS.Endposition linestyle Dashed
+    aid line  number 10 $!LineUES.Startposition to $!LineUES.Endposition linestyle Dashed
+    aid line  number 11 $!LineUWN.Startposition to $!LineUWN.Endposition linestyle Dashed 
+    aid line  number 12 $!LineUEN.Startposition to $!LineUEN.Endposition linestyle Dashed
+    !this.Zleng = !LineUWS.Length()
+    -- Line Corner1 to Corner2
+    !this.ResulLim = !AAx
+    !PosCor1 = Object Position('$!AAx[1] $!AAx[2] $!AAx[3]  $!AAx[4]  $!AAx[5]  $!AAx[6]')
+    !PosCor2 = Object Position('$!AAx[8] $!AAx[9] $!AAx[10] $!AAx[11] $!AAx[12] $!AAx[13]')
+    !MidPos  = !PosCor1.Midpoint(!PosCor2)
+    !this.BoxPos = '$!MidPos'
+    if (!this.Clip.Background ne !this.Background) then
+      !this.ClippV(2)
+    endif
+  endif
+endmethod
+----------------------------------------------------------------------------------------------
+--- Method for DRAWING of limits for BOX Volume
+----------------------------------------------------------------------------------------------
+define method  .CreateVlim()  is ARRAY
+  !ResultAr = !this.ResulLim
+  return !ResultAr
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method for enlargement of existing volume about volume of selected PICKED next compent
+--- get new coordinates of box
+-----------------------------------------------------------------------------------------------
+define method .EnlargV()
+  !this.NewVolume.clear()
+  id@
+  var !VolBox1 Volume ce
+  !VolBox1 = replace(!VolBox1,'to','')
+  !VolBox1 = replace(!VolBox1,'WRT /*','')
+  !VolBox2 = replace(!this.VolBoxF,'to','')
+  !VolBox2 = replace(!VolBox2,'WRT /*','')
+  !Array1Axes = !VolBox1.split()
+  !Array2Axes = !VolBox2.split() 
+  !ResultAr = ARRAY()
+  do !a from 1 to (!Array1Axes.size() - 1)
+    if (int(!a / 2) lt (!a / 2)) then
+      !an = !a + 1
+      do !b from 1 to (!Array2Axes.size() - 1)
+        if (int(!b / 2) lt (!b / 2)) then
+          if (!a eq !b) then
+            !ResultAr[$!a]  = !Array2Axes[$!a]
+            !ResultAr[$!an] = !Array2Axes[$!an]
+          endif
+          if      (!a eq !b and !a le 5) then
+            if (($!Array1Axes[$!a]  $!Array1Axes[$!an]) lt ($!Array2Axes[$!a]  $!Array2Axes[$!an])) then 
+              --$P  new $!Array1Axes[$!a]  $!Array1Axes[$!an] lt old $!Array2Axes[$!a]  $!Array2Axes[$!an] $!a , $!b  1th corner changed coordinate
+              !ResultAr[$!a] = !Array1Axes[$!a]
+              !ResultAr[$!an] = !Array1Axes[$!an]
+            endif 
+          elseif (!a eq !b and !a ge 7) then
+            if (($!Array2Axes[$!a]  $!Array2Axes[$!an]) lt ($!Array1Axes[$!a]  $!Array1Axes[$!an])) then 
+              --$P  new $!Array1Axes[$!a]  $!Array1Axes[$!an] gt old $!Array2Axes[$!a]  $!Array2Axes[$!an] $!a , $!b  2nd corner changed coordinate
+              !ResultAr[$!a] = !Array1Axes[$!a]
+              !ResultAr[$!an] = !Array1Axes[$!an]
+            endif 
+          endif
+        endif
+      enddo
+    endif
+  enddo
+  !ResultAr.insert(7,'to')
+  !this.NewVolume = !ResultAr
+endmethod
+----------------------------------------------------------------------------------------------
+--- Method for calculation of new limits for Volume
+----------------------------------------------------------------------------------------------
+define method  .Newlimits(!AAxP is ARRAY,!b is REAL,!c is REAL,!bb is REAL,!cc is REAL, !Sel2 is REAL) is REAL
+  !ResultR = REAL()
+  !Delta = real('$!Sel2')
+  do !a from 1 to !AAxP.Size()
+    if ($!c eq $!a) then
+      if (!a le 6) then
+        if ('$!AAxP[$!b]' inset('E','N','U')) then
+          !Delta = -!Delta 
+        endif
+      else
+        if ('$!AAxP[$!b]' inset ('W','D','S')) then
+          !Delta = -!Delta   
+        endif
+      endif
+     !ResultR = real('$!AAxP[$!a]') + ($!Delta)
+    endif
+  enddo
+  return !ResultR
+endmethod
+----------------------------------------------------------------------------------------------
+--- Method for filling of TYPE and NAME
+----------------------------------------------------------------------------------------------
+define method .FillIN()
+  !this.CeaddCl.Val = NAME
+  !this.CeaddTY.Val = TYPE
+endmethod
+----------------------------------------------------------------------------------------------
+--- Method for checking whether program will continue => are all settings all right!!!
+----------------------------------------------------------------------------------------------
+define method .CheckApply(!SelT is STRING) 
+  if (replace(|$!this.CeaddCl.Val|,' ','') eq '') then
+    !FlagEror = TRUE
+    !!Alert.Warning(|Warning, plese select hierarchy = CE !!!|)
+  endif
+  if (replace(|$!this.CurELEM.Val|,' ','') eq '') then 
+    !this.CurELEM.Val = 100
+  endif
+  if (!this.CurELEM.Val ge 20000) then
+    !AnswerQ = !!Alert.Confirm(|Are you sure, you want to add volume with distance $!this.CurELEM.Val ? If not, press NO! If you want to continue press YES! |)
+    if (|$!AnswerQ| eq |NO|) then
+      !FlagEror = TRUE
+    endif
+  endif
+  if (undefined(!FlagEror)) then
+    !this.Apply(!this.CurCOL, !this.CurTyp, !SelT)
+  endif
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method for finding STRINGs in the Name of owners(Jump own & own as far as type = SITE)
+-----------------------------------------------------------------------------------------------
+define method .Jump() is BOOLEAN
+  !FLAGexName = FALSE
+  !Type = TYPE 
+  !Name = NAME
+  if (!Type NE 'WORL') then
+    do !b from 1 to !this.ArrayList.SIZE()
+      if (match(!Name,!this.ArrayList[$!b]) gt 0) then
+        !FLAGexName = TRUE
+        if (!FLAGexName eq TRUE) then
+          break
+        endif
+      endif
+    enddo
+    if (!FLAGexName eq FALSE) then
+      own
+      !FLAGexName = !this.Jump()
+    endif
+  endif
+  return !FLAGexName
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Main method for adding according selected criteria
+-----------------------------------------------------------------------------------------------
+define method .Apply(!COL is Gadget, !TypeAD is Gadget, !SelT is STRING)
+  !Bpom = substring(|$!this.CeaddCl.Val|,1,1)
+  if     (|$!Bpom| eq |/|) then
+    !NameOFCE = |$!this.CeaddCl.Val|
+  elseif (|$!Bpom| eq |=|) then
+    !NameOFCE = |$!this.CeaddCl.Val|
+  else
+    !NameOFCE = |/| + |$!this.CeaddCl.Val|
+  endif
+  !ResultAr = !this.CreateVlim()
+  !Corn1 = $!ResultAr[1] $!ResultAr[2] $!ResultAr[3] $!ResultAr[4] $!ResultAr[5] $!ResultAr[6]
+  !Corn2 = $!ResultAr[8] $!ResultAr[9] $!ResultAr[10] $!ResultAr[11] $!ResultAr[12] $!ResultAr[13]
+  if (!this.ListC.val eq 1) then
+    !Visib = ''
+  else
+    !Visib = 'TRANSL'+' $!this.ListC'
+    !Visib = replace('$!Visib','%','')
+  endif
+  if ('$!TypeAD' eq 'ALL') then
+    var !ArrayALL collect all WITHIN  $!Corn1 to $!Corn2
+    -- ADD all WITHIN VOLUME $!NameOFCE  $!this.CurELEM.VAL COL $!COL.val
+  else
+    var !ArrayALL collect all $!TypeAD WITHIN  $!Corn1 to $!Corn2
+  endif
+  do !a from 1 to !ArrayALL.SIZE()
+    $!ArrayALL[$!a]
+    !cecol = CE
+    !FLAGexName = FALSE
+    !FLAGexName = !this.Jump()
+    -- $P $!ArrayALL[$!a] => start chcecking of adding to display according ignore list  
+    if (!FLAGexName eq FALSE) then
+      $!cecol
+      if (!SelT eq 'ADD') then
+        if (!this.AutoCoB.val eq TRUE) then
+          !Makethis = 'ADD CE'
+        else
+          !Makethis = 'ADD CE COL $!COL.background $!Visib'
+        endif
+        !this.FoundElem.append(!cecol.name)
+      else
+        if (!this.APPLYR.val eq 1) then                   $* rem all form the box
+          !Makethis = 'REM CE'
+        else                                              $* rem all added to screen
+          if (!this.RemainElem.findfirst(!cecol.name).Unset()) then   $* can be removed
+            !Makethis = 'REM CE'
+          else
+            !Makethis = ''
+          endif
+        endif
+      endif
+      if (!this.ZobrazB.Val eq TRUE) then
+        if(match(!cecol.name,repl(!this.Zobraz.val,' ','')) gt 0) then
+          $!Makethis 
+          handle any
+          endhandle
+        endif
+      else
+        $!Makethis
+        handle any
+        endhandle
+      endif
+    else
+      -- $P $!cecol.name will be ignored
+    endif
+  enddo
+  if (!ArrayALL.SIZE() eq 0) then
+     !!Alert.Warning(|VOLUME $!Corn1 to $!Corn2 is EMPTY for $!TypeAD|)
+  endif
+  $!NameOFCE
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method for Clipping
+-----------------------------------------------------------------------------------------------
+define method .ClippV(!sel is REAL)
+  if (!this.Clip.Background eq !this.Background) then
+    if (!sel eq 3) then
+      !this.ClippDisab()
+    else
+      !this.ClippEnab()
+    endif
+  else 
+    if (!sel eq 2) then
+      !this.ClippEnab()
+    else
+      !this.ClippDisab()
+    endif
+  endif
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method for Clipping - Enable
+-----------------------------------------------------------------------------------------------
+define method .ClippEnab()
+  !numView = !!gphViews.views
+  if (!this.NewVolume.size() gt 0) then
+    Clip Xlen $!this.Xleng Ylen $!this.Yleng Zlen $!this.Zleng Pos  $!this.BoxPos
+    var !Cecolour  colour ce
+    var !Accolour  colour active
+    !this.Clip.Background = !Accolour 
+    do !a from 1 to !numView.size()
+      !NAMEV = '!!'+'GPH3DDESIGN'+'$!A'+'.clipBox.enable()'
+      $!NAMEV
+      handle any
+      endhandle
+      --!!GPH3DDESIGN1.clipBox.enable()  $* old part - only for 1 des view
+    enddo
+  else 
+    !!Alert.Warning(|Select, CE volume!|)
+  endif
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method for Clipping - Disable
+-----------------------------------------------------------------------------------------------
+define method .ClippDisab()
+  !numView = !!gphViews.views
+  !this.Clip.Background = !this.Background
+  do !a from 1 to !numView.size()
+    !NAMEV = '!!'+'GPH3DDESIGN'+'$!A'+'.clipBox.disable()'
+    $!NAMEV
+    handle any
+    endhandle
+  enddo
+  --!!GPH3DDESIGN1.clipBox.disable()  $* old part - only for 1 des view
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method which destroys all line + objects lines
+-----------------------------------------------------------------------------------------------
+define method .DissmisM()
+  !this.ClippV(3)
+  do !a from 1 to 12
+     aid  clear line  $!a
+     handle any
+     endhandle
+  enddo
+  kill !!rvafaddvol
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method which swich on off text gadget .Zobraz
+-----------------------------------------------------------------------------------------------
+define method .CecktextB()
+  if (!this.ZobrazB.Val eq TRUE) then
+    !this.Zobraz.Active = TRUE
+  else
+    !this.Zobraz.Active = FALSE
+  endif
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method which collect all 'PIPE/WAT+PIPE/SCTN/PRIMITIEVES' members call Object !rvaaddvcont 
+-----------------------------------------------------------------------------------------------
+define method .CollectMem(!Sel is REAL)
+  !rvaaddvcount = Object rvaaddvcount()
+  if (!this.APPLY.Active eq TRUE) then
+    !rvaaddvcount.VolCoordinate(!Sel,!this)
+  endif
+endmethod
+-----------------------------------------------------------------------------------------------
+--- Method will set the var !this.RemainElem - waht have been on the screen before adding procedure
+-----------------------------------------------------------------------------------------------
+define method .Remainelements()
+  !this.RemainElem.clear()
+  !this.RemainElem = !!CDADDREM.DRAWLIST.dtext
+  var selector _CDADDREM_DRAWLIST clear
+  DRAW
+  exit
+  --q var !this.RemainElem
+endmethod
