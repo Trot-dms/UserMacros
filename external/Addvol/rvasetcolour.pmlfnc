@@ -1,0 +1,64 @@
+------------------------------------------------------------------------       
+-- File                   : rvasetcolour.pmlfrm        
+-- Type                   : function
+-- Module                 : ANY
+-- Last modified by Author: Robert Vancisin Date: 21.4.2006
+-- Description            : call form for seting of colours
+--                          and then sets right button background from calling macro
+-- contact                : rvancisin@yahoo.com
+------------------------------------------------------------------------
+define function !!rvasetcolour(!Myform is ANY)
+-- Initialise Variables
+!tableWidth = 10
+
+-- Load colour from PDMSDFLTS/PDMS-COLOURS
+if (undefined(!!appColours)) then
+  !!appColours = !!loadColours(object FILE('%PDMSDFLTS%/PDMS-COLOURS'))
+endif
+
+-- Define form
+   setup form !!rvasetcolour
+    
+    !!rvasetcolour.formTitle     = |Choose ADDing colour to display|
+    !!rvasetcolour.iconTitle     = |ADDing colour to display|
+    !!rvasetcolour.formRevision  = | $Revision: 1.13 $ |
+    
+    -- Form Members
+    
+    -- Colour Action
+    member .action    is STRING
+    
+    -- Initial Colour
+    member .setColour is REAL
+    !!rvasetcolour.setColour = !!appColours[1]
+    
+    member .Form is FORM
+    !!rvasetcolour.Form = !Myform
+    -- Colour Frame
+    frame .colFrame |Colours|
+      -- Build colour form matrix
+      do !i indices !!appColours
+        !colCode   = !!appColours[!i]
+        !colObject = object COLOUR(!colCode)
+        !colName   = !colObject.name.subString(1,1).upcase() & !colObject.name.subString(2)
+        
+        if(int((!i - 1) / !tableWidth) eq (!i - 1) / !tableWidth) then
+          button .colour$!i |  | at x1   ymax
+        else
+          button .colour$!i |  | at xmax ymin
+        endif
+        !this.colour$!i$n.setTooltip(!colName)
+        !this.colour$!i$n.callback = '!!rvasetcolour.Form.SetCol(!!rvasetcolour.colour$!<i>.background)'
+        !this.colour$!i$n.background = !colCode
+      enddo
+    exit
+    
+    -- Current selected colour
+    para .currentColour at x1 ymax+0.25 width 30 lines 1
+    
+    -- Dismiss button
+    button .dismiss 'Dismiss' at xmax form-size ymax OK
+    path left  
+  exit
+  show !!rvasetcolour
+endfunction

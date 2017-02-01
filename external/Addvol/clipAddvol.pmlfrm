@@ -1,0 +1,564 @@
+-- $(
+  -- Author  : Aurelio Peros Hinampas
+  -- Date    : March 9, 2012
+  -- Purpose : Add Volume & Clipping Manager
+  
+  -- Last Modified   : AUTHOR
+  -- Date            : February 20, 2014
+  -- Email Address   : hinrey12@gmail.com
+-- $)
+
+setup form !!clipAddVol dialog dock
+  !this.formtitle  = 'ADD Volume / CLIP Manager'
+  !this.cancelcall = '!this.aidboxOff() !this.hide()'
+  
+  frame .allframe '' anchor all
+    frame .frame 'Define CE and Volume'
+      button .boxCe ' CE ' callback '!this.ce(|CE|)'
+      button .pick 'Pick' callback '!this.pick('
+      text .ceName '' at xmax+0.5 callback '!this.ce(|INPUT|)' width 21.5 is STRING
+      path down
+      line .divline '' at xmin.boxCe horizontal width 36.5
+      button .eastPlus '+' at xmin.boxCe ymax+0.25 callback '!this.eastAdjust(|+|)'
+      path right
+      button .eastMinus '-' at xmax+0.25 callback '!this.eastAdjust(|-|)'
+      text .eastTxt at xmax+0.25 width 1 is STRING
+      text .eastPos at xmax+0.25 callback '!this.adjustVolume()' width 8 is REAL
+      button .westPlus '+' callback '!this.westAdjust(|+|)'
+      button .westMinus '-' at xmax+0.25 callback '!this.westAdjust(|-|)'
+      text .westTxt at xmax+0.25 width 1 is STRING
+      text .westPos at xmax+0.25 callback '!this.adjustVolume()' width 8 is REAL
+      path down
+      button .northPlus '+' at xmin.boxCe ymax+0.25 callback '!this.northAdjust(|+|)'
+      path right
+      button .northMinus '-' at xmax+0.25 callback '!this.northAdjust(|-|)'
+      text .northTxt at xmax+0.25 width 1 is STRING
+      text .northPos at xmax+0.25 callback '!this.adjustVolume()' width 8 is REAL
+      button .southPlus '+' callback '!this.southAdjust(|+|)'
+      button .southMinus '-' at xmax+0.25 callback '!this.southAdjust(|-|)'
+      text .southTxt at xmax+0.25 width 1 is STRING
+      text .southPos at xmax+0.25 callback '!this.adjustVolume()' width 8 is REAL
+      path down
+      button .upPlus '+' at xmin.boxCe ymax+0.25 callback '!this.upAdjust(|+|)'
+      path right
+      button .upMinus '-' at xmax+0.25 callback '!this.upAdjust(|-|)'
+      text .upTxt at xmax+0.25 width 1 is STRING
+      text .upPos at xmax+0.25 callback '!this.adjustVolume()' width 8 is REAL
+      button .downPlus '+' callback '!this.downAdjust(|+|)'
+      button .downMinus '-' at xmax+0.25 callback '!this.downAdjust(|-|)'
+      text .downTxt at xmax+0.25 width 1 is STRING
+      text .downPos at xmax+0.25 callback '!this.adjustVolume()' width 8 is REAL
+    exit
+    path down
+    para .lock at at xmin.frame text 'Lock'
+    path right
+    toggle .east 'E' callback '!this.lockOption('
+    toggle .west 'W' at xmax+0.25 callback '!this.lockOption('
+    toggle .north 'N' at xmax+0.25 callback '!this.lockOption('
+    toggle .south 'S' at xmax+0.25 callback '!this.lockOption('
+    toggle .up 'U' at xmax+0.25 callback '!this.lockOption('
+    toggle .down 'D' at xmax+0.25 callback '!this.lockOption('
+    line .barline '' at xmax vertical height 1
+    toggle .lockAll 'ALL' callback '!this.lockOption('
+    path down
+    line .horiLine '' at xmin.frame horizontal width.frame
+    toggle .adjust 'ADJUST' at xmin.frame callback '!this.adjustMove()'
+    path right
+    button .enlarge ' + ' at xmax callback '!this.adjustAll('
+    button .shrink ' - ' callback '!this.adjustAll('
+    button .pickAdjust pixmap height 16 width 16 callback '!this.pick('
+    text .increment 'DIST:' at xmax+0.5 width 6.5 is REAL format !!borefmt
+    path down
+    line .addclipLine '' at xmin.frame horizontal width.frame
+    button .clip 'CLIP BOX' callback '!this.clipBox('
+    path right
+    line .clipaddBar '' vertical height 1
+    button .addVolume 'ADD VOL' callback '!this.addVolume()'
+    option .typeList '' width 6.5
+    button .boxOff 'OFF' linklabel callback '!this.aidboxOff()'
+    path down
+    button .filter 'Ignore Filters' at xmin.frame ymax+0.75 anchor b+l linklabel callback '!this.ignoreItems(|EDIT|)'
+    path right
+    button .copyright '?' at xmax form-size anchor b+r linklabel callback '$P <$!<this>> Copyright 2014 - Aurelio Peros Hinampas'
+  exit
+  
+  member .ignoreItems is ARRAY
+  !!appFormCntrl.registerForm(!this)
+exit
+
+-- Description : Initialise form variables
+define method .clipAddVol()
+  !this.typeList.dtext = split('ALL,PIPE,HVAC,STRU,EQUI,BRAN,FRMW,SUBS,SCTN',',')
+  !this.typeList.rtext = split(',PIPE,HVAC,STRU,EQUI,BRAN,FRMW,SUBS,SCTN',',')
+  !this.westTxt.val    = 'W'   !this.westTxt.setEditable(FALSE)
+  !this.southTxt.val   = 'S'   !this.southTxt.setEditable(FALSE)
+  !this.downTxt.val    = 'D'   !this.downTxt.setEditable(FALSE)
+  !this.eastTxt.val    = 'E'   !this.eastTxt.setEditable(FALSE)
+  !this.northTxt.val   = 'N'   !this.northTxt.setEditable(FALSE)
+  !this.upTxt.val      = 'U'   !this.upTxt.setEditable(FALSE)
+  !this.increment.val  = 500
+  !this.lockAll.val    = TRUE
+  !this.adjust.val     = TRUE
+  !this.pickAdjust.addPixmap(!!pml.getpathname('pickview16.png'))
+  
+  -- Set Clipping Cap Colour to <GREY>
+  !!gph3dDesign1.view.clipBoxCapColour = 'grey'
+  -- Set to CHECK < TRUE > the Cap Toggle in the Clipping & Options Menu:
+  !!gph3dDesign1.view.owner().lclippingMenu.select('Capped',TRUE)
+  -- Set the Clip Capping to <ON>
+  !!gph3dDesign1.clipbox.capOn()
+  
+  !this.lockOption(!this.lockAll,'SELECT')
+  !this.setTooltips()
+endmethod
+
+-- Description : Set Tooltips on Gadgets to display usage informations'
+define method .setTooltips()
+  !this.boxCe.setTooltip('Set Volume Box to Current Element.')
+  !this.pick.setTooltip('Pick Multiple Elements to Set the Volume Box Range.')
+  !this.pickAdjust.setTooltip('Pick Multiple Elements to Adjust the Current Volume Box Range.')
+  !this.adjust.setTooltip('Switch Option for ADJUST or MOVE the Volume Box.')
+  !this.enlarge.setTooltip('ENLARGE the Volume Box by ALL Checked in Lock Checkboxes.')
+  !this.shrink.setTooltip('SHRINK the Volume Box by ALL Checked in Lock checkboxes.')
+  !this.clip.setTooltip('Enable / Disable Clipping Box.')
+  !this.boxOff.setTooltip('Clear the Aid Box & Clipping Box.')
+  !this.addVolume.setTooltip('Add Elements Within the Volume Box.')
+  !this.filter.setTooltip('Add / Modify Filter(s) for Elements to be Ignored in Adding Volume.')
+  !this.copyright.setTooltip('Copyright 2014 - Aurelio Peros Hinampas (queries; email: hinrey12@gmail.com)')
+endmethod
+
+-- Description : Create file for the Items to be ignored in Adding Volume.
+--             : Provides ease to modify the file (Add / Delete) item(s) in the Ignore List.
+define method .ignoreItems( !action is STRING )
+  !proj = current project
+  !code = !proj.code().upcase()
+  var !mdb mdb
+  !mdb  = !mdb.after('/').upcase().replace('(','').replace(')','').replace('/','').replace('\','').replace('&','')
+  !path = object FILE (!!evar('pdmsuser') & '\AddVolCache\' & !code & '\' & !mdb)
+  !file = object FILE (!path.string() & '\ignoreAddVol.txt')
+  
+  if (!action.eq('READ')) then
+    if (!path.exists().not()) then
+      syscom 'mkdir "$!<path>" &'
+      pause 2
+    endif
+    if (!file.exists().not()) then
+      !readMe = object ARRAY()
+      !readMe.append('# List of Filters to Ignore Elements when Adding Volume.')
+      !readMe.append('# It will Ignore All Elements that its NAME will Match to Any of the Filters.')
+      !readMe.append('# Each Filters will contain in each ROW and so on...')
+      !readMe.append('# Add Your Filter Next Row to TESTING-ONLY or Delete the word TESTING-ONLY.')
+      !readMe.append('')
+      !readMe.append('TESTING-ONLY')
+      !file.writefile('write', !readMe)
+    endif
+    !file.open('READ')
+    !readfile = !file.readfile()
+    !filters  = object ARRAY()
+    do !i values !readfile
+      skip if (!i.trim().empty() or !i.trim().substring(1,1).eq('#'))
+      !filters.append(!i.trim())
+    enddo
+    !filters.unique()
+    !this.ignoreItems = !filters
+    !file.close()
+  elseif (!action.eq('EDIT')) then
+    if (!file.exists().not()) then
+      !this.ignoreItems('READ')
+    endif
+    syscom '"$!<file>" &'
+    handle any
+      return error 1 '$!!<error.text>'
+    endhandle
+  endif
+endmethod
+
+-- Description : Lock Direction; (Enable / Disable) Directional volume range adjustment.
+define method .lockOption ( !gadget is GADGET, !action is STRING )
+  if (!gadget.eq(!this.lockAll)) then
+    !this.east.val  = !gadget.val    !this.west.val  = !gadget.val
+    !this.north.val = !gadget.val    !this.south.val = !gadget.val
+    !this.up.val    = !gadget.val    !this.down.val  = !gadget.val
+  elseif (!this.east.val and !this.west.val and !this.north.val and !this.south.val and !this.up.val and !this.down.val) then
+    !this.lockAll.val = TRUE
+  else
+    !this.lockAll.val = FALSE
+  endif
+  
+  !this.eastPlus.active   = !this.east.val    !this.westPlus.active   = !this.west.val
+  !this.eastMinus.active  = !this.east.val    !this.westMinus.active  = !this.west.val
+  !this.eastPos.active    = !this.east.val    !this.westPos.active    = !this.west.val
+  !this.northPlus.active  = !this.north.val   !this.southPlus.active  = !this.south.val
+  !this.northMinus.active = !this.north.val   !this.southMinus.active = !this.south.val
+  !this.northPos.active   = !this.north.val   !this.southPos.active   = !this.south.val
+  !this.upPlus.active     = !this.up.val      !this.downPlus.active   = !this.down.val
+  !this.upMinus.active    = !this.up.val      !this.downMinus.active  = !this.down.val
+  !this.upPos.active      = !this.up.val      !this.downPos.active    = !this.down.val
+endmethod
+
+-- Description : Define CE and Volume Box Range.
+define method .ce ( !action is STRING )
+  if (!action.eq('CE')) then
+    !dbref = !!ce
+  else
+    !dbref = !this.ceName.val.dbref()
+    handle any
+      return error 1 '$!!<error.text>'
+    endhandle
+  endif
+  !volume  = !this.getVolume(!dbref)
+  if (not(!dbref.fullType.eq('WORLD') or !dbref.fullType.eq('SITE') or !dbref.fullType.eq('ZONE'))) then
+    -- View Center on Volume Box
+    !!gphViews.rotate(!!gphviews.views[1],!volume)
+  endif
+  
+  !this.getPosition(!volume)
+endmethod
+
+-- Description : Get the corresponding VOLUME information of element (DBREF).
+define method .getVolume( !dbref is DBREF ) is VOLUME
+  if (!dbref.fullType eq 'WORLD') then
+    $P Too Large Volume to be Handled...
+  endif
+  
+  !this.ceName.val = !dbref.fullname
+  
+  !volume = object VOLUME(!dbref)
+  if (!volume.unset()) then
+    !volume = object VOLUME(!dbref.owner)
+    if (!volume.unset()) then
+      $P Unable to Derive Volume of Element.
+    endif
+    $P Unable to Derive Volume of Element, using Element Owner.
+  endif
+  
+  return !volume
+endmethod
+
+-- Description : Get the Volume Box position and XYZ-Length from the given VOLUME.
+define method .getPosition ( !volume is VOLUME )
+  !format           = object FORMAT()
+  !format.units     = 'MM'
+  !format.dp        = 1
+  !format.dimension = 'L'
+  
+  !volume.from = !volume.from.string(!format).position()
+  !volume.to   = !volume.to.string(!format).position()
+  !position    = !volume.from.midpoint(!volume.to)
+  !xLength     = !volume.box().xLength
+  !yLength     = !volume.box().yLength
+  !zLength     = !volume.box().zLength
+  
+  !this.westPos.val  = !volume.from.east
+  !this.eastPos.val  = !volume.to.east
+  !this.southPos.val = !volume.from.north
+  !this.northPos.val = !volume.to.north
+  !this.downPos.val  = !volume.from.up
+  !this.upPos.val    = !volume.to.up
+  
+  AID CLEAR ALL  9102013
+  AID BOX NUMBER 9102013 at $!<position> ORIENTATION Y is N and Z is U XLEN $!<xLength> YLEN $!<yLength> ZLEN $!<zLength> FILL OFF
+  
+  !this.clipBox(!this.clip,'SELECT')
+endmethod
+
+-- Description : Pick Multiple Elements to Set the Volume Box Range.
+define method .pick( !gadget is GADGET, !action is STRING )
+  if (!action.eq('UNSELECT')) then
+    return
+  endif
+  
+  prompt dismiss
+  prompt off
+  
+  do !i
+    prompt load escape 'Identify Reference Element... & Press ESCAPE to Exit.'
+    var !pick pick
+    handle any
+      prompt on
+      break
+    endhandle
+    !dbref = !pick[1].dbref()
+    if (!i.eq(1) and !gadget.eq(!this.pick)) then
+      !volume = !this.getVolume(!dbref)
+      !this.getPosition(!volume)
+    else
+      !volume = !this.getVolume(!dbref)
+    endif
+    
+    !west     = MIN (!this.westPos.val, !volume.from.east)
+    !south    = MIN (!this.southPos.val, !volume.from.north)
+    !down     = MIN (!this.downPos.val, !volume.from.up)
+    !east     = MAX (!volume.to.east, !this.eastPos.val)
+    !north    = MAX (!volume.to.north, !this.northPos.val)
+    !up       = MAX (!volume.to.up, !this.upPos.val)
+    
+    !this.eastPos.val  = !east    !this.westPos.val  = !west
+    !this.northPos.val = !north   !this.southPos.val = !south
+    !this.upPos.val    = !up      !this.downPos.val  = !down
+    !volume.from       = object POSITION ('E $!<this.westPos> N $!<this.southPos> U $!<this.downPos>')
+    !volume.to         = object POSITION ('E $!<this.eastPos> N $!<this.northPos> U $!<this.upPos>')
+    
+    !this.getPosition (!volume)
+  enddo
+  prompt on
+endmethod
+
+-- Description : Switch FLAG either to ADJUST or MOVE the volume box directionally.
+define method .adjustMove()
+  if (!this.adjust.val) then
+    !this.adjust.tag        = 'ADJUST'
+    !this.enlarge.active    = TRUE
+    !this.shrink.active     = TRUE
+    !this.pickAdjust.active = TRUE
+  else
+    !this.adjust.tag        = 'MOVE  '
+    !this.enlarge.active    = FALSE
+    !this.shrink.active     = FALSE
+    !this.pickAdjust.active = FALSE
+  endif
+endmethod
+
+-- Description : Adjust Volume in ALL Directions (Enlarge / Shrink).
+define method .adjustAll( !gadget is GADGET , !action is STRING )
+  if (!action.eq('UNSELECT')) then
+    return
+  endif
+  
+  if (!gadget.eq(!this.enlarge)) then
+    !this.eastAdjust('+')
+    !this.westAdjust('+')
+    !this.northAdjust('+')
+    !this.southAdjust('+')
+    !this.upAdjust('+')
+    !this.downAdjust('+')
+  else
+    !this.eastAdjust('-')
+    !this.westAdjust('-')
+    !this.northAdjust('-')
+    !this.southAdjust('-')
+    !this.upAdjust('-')
+    !this.downAdjust('-')
+  endif
+endmethod
+
+-- Description : Adjust / Move Volume Box Range towards East direction.
+define method .eastAdjust( !action is STRING )
+  if (!this.adjust.val.not()) then
+    !this.moveVolBox ('E', !action)
+  else
+    if (!this.east.val) then
+      !this.eastPos.val = !this.eastPos.val $!<action> !this.increment.val
+    endif
+  endif
+  
+  !this.adjustVolume()
+endmethod
+
+-- Description : Adjust / Move Volume Box Range towards West direction.
+define method .westAdjust( !action is STRING )
+  if (!this.adjust.val.not()) then
+    !this.moveVolBox ('W', !action)
+  else
+    if (!this.west.val) then
+      !this.westPos.val = !this.westPos.val $!<action> (!this.increment.val * -1)
+    endif
+  endif
+  
+  !this.adjustVolume()
+endmethod
+
+-- Description : Adjust / Move Volume Box Range towards North direction.
+define method .northAdjust( !action is STRING )
+  if (!this.adjust.val.not()) then
+    !this.moveVolBox ('N', !action)
+  else
+    if (!this.north.val) then
+      !this.northPos.val = !this.northPos.val $!<action> !this.increment.val
+    endif
+  endif
+  
+  !this.adjustVolume()
+endmethod
+
+-- Description : Adjust / Move Volume Box Range towards South direction.
+define method .southAdjust( !action is STRING )
+  if (!this.adjust.val.not()) then
+    !this.moveVolBox ('S', !action)
+  else
+    if (!this.south.val) then
+      !this.southPos.val = !this.southPos.val $!<action> (!this.increment.val * -1)
+    endif
+  endif
+  
+  !this.adjustVolume()
+endmethod
+
+-- Description : Adjust / Move Volume Box Range towards Up direction.
+define method .upAdjust( !action is STRING )
+  if (!this.adjust.val.not()) then
+    !this.moveVolBox ('U', !action)
+  else
+    if (!this.up.val) then
+      !this.upPos.val = !this.upPos.val $!<action> !this.increment.val
+    endif
+  endif
+  !this.adjustVolume()
+endmethod
+
+-- Description : Adjust / Move Volume Box Range towards Down direction.
+define method .downAdjust( !action is STRING )
+  if (!this.adjust.val.not()) then
+    !this.moveVolBox ('D', !action)
+  else
+    if (!this.down.val) then
+      !this.downPos.val = !this.downPos.val $!<action> (!this.increment.val * -1)
+    endif
+  endif
+  
+  !this.adjustVolume()
+endmethod
+
+-- Description : Handles user input of Volume Box Range.
+define method .adjustVolume()
+  !this.interChange()
+  !volume       = object VOLUME()
+  !volume.to    = object POSITION('E $!<this.eastPos> N $!<this.northPos> U $!<this.upPos>')
+  !volume.from  = object POSITION('E $!<this.westPos> N $!<this.southPos> U $!<this.downPos>')
+  
+  !this.getPosition(!volume)
+endmethod
+
+-- Description : Move Volume Box Range towards the picked Gadget direction.
+define method .moveVolBox ( !dire is STRING, !sign is STRING )
+  !volume      = object VOLUME()
+  !volume.from = object POSITION ('E $!<this.westPos> N $!<this.southPos> U $!<this.downPos>')
+  !volume.to   = object POSITION ('E $!<this.eastPos> N $!<this.northPos> U $!<this.upPos>')
+  
+  !position    = !volume.from.midpoint(!volume.to)
+  !xLength     = !volume.box().xLength
+  !yLength     = !volume.box().yLength
+  !zLength     = !volume.box().zLength
+  !posOffset   = !position.offset($!<dire>, $!<sign>$!<this.increment>)
+  
+  !this.eastPos.val  = !posOffset.east + !xLength / 2
+  !this.westPos.val  = !posOffset.east - !xLength / 2
+  !this.northPos.val = !posOffset.north + !yLength / 2
+  !this.southPos.val = !posOffset.north - !yLength / 2
+  !this.upPos.val    = !posOffset.up + !zLength / 2
+  !this.downPos.val  = !posOffset.up - !zLength / 2
+  
+  !!gphViews.rotate(!!gph3ddesign1.view, !posOffset)
+endmethod
+
+-- Description : Manage the user input of Volume Box Range and corrects the FROM and TO volume limits.
+define method .interChange()
+  !east  = !this.eastPos.val     !west  = !this.westPos.val
+  !north = !this.northPos.val    !south = !this.southPos.val
+  !up    = !this.upPos.val       !down  = !this.downPos.val
+  
+  if (!west.gt(!east)) then
+    !this.westPos.val  = !east
+    !this.eastPos.val  = !west
+  endif
+  if (!south.gt(!north)) then
+    !this.southPos.val = !north
+    !this.northPos.val = !south
+  endif
+  if (!down.gt(!up)) then
+    !this.downPos.val  = !up
+    !this.upPos.val    = !down
+  endif
+endmethod
+
+-- Description : Add Elements within the defined Volume Box Range.
+define method .addVolume()
+  if (!this.ceName.val.trim().empty()) then
+    return error 1 'Define CE and Volume first, Click <CE> or <Pick> to define the volume range.'
+  endif
+  
+  -- Update Items to be Ignore in Adding Volume
+  !this.ignoreItems('READ')
+  
+  !from = 'E $!<this.westPos> N $!<this.southPos> U $!<this.downPos>'
+  !to   = 'E $!<this.eastPos> N $!<this.northPos> U $!<this.upPos>'
+  var !collect collect ALL $!<this.typeList> WITHIN $!<from> TO $!<to>
+  
+  do !a indices !collect
+    !dbref = !collect[!a].dbref()
+    !flag  = !this.jump(!dbref)
+    if (!flag.not()) then
+      add $!<dbref>
+    endif
+  enddo
+endmethod
+
+-- Description : Flag to return TRUE if the Element NAME match to any of the Items to be Ignored filters and FALSE if it does not match.
+define method .jump ( !dbref is DBREF ) is BOOLEAN
+  !flag = FALSE
+  !name = !dbref.name.upcase()
+  
+  if (!dbref.fullType.neq('WORLD')) then
+    do !b indices !this.ignoreItems
+      !ignore = !this.ignoreItems[!b].upcase()
+      if (!name.matchwild('*$!ignore*')) then
+        !flag = TRUE
+        -- Break if Element Name Match to any in the Ignore Items
+        break
+      endif
+    enddo
+    if (!flag.not()) then
+      !flag = !this.jump(!dbref.owner)
+    endif
+  endif
+  
+  return !flag
+endmethod
+
+-- Description : Manage ON / OFF of Clipping Volume.
+define method .clipBox( !gadget is GADGET, !action is STRING )
+  if (!this.ceName.val.trim().empty()) then
+    return error 1 'Define CE and Volume first, Click <CE> or <Pick> to define the volume range.'
+  endif
+  
+  !volume      = object VOLUME()
+  !volume.from = object POSITION ('E $!<this.westPos> N $!<this.southPos> U $!<this.downPos>')
+  !volume.to   = object POSITION ('E $!<this.eastPos> N $!<this.northPos> U $!<this.upPos>')
+  !position    = !volume.from.midpoint(!volume.to)
+  !xLength     = !volume.box().xLength
+  !yLength     = !volume.box().yLength
+  !zLength     = !volume.box().zLength
+  
+  !numView = !!gphviews.views
+  if (!gadget.val) then
+    CLIP XLEN $!<xLength> YLEN $!<yLength> ZLEN $!<zLength> POSITION $!<position>
+    !gadget.background = 'green'
+  else
+    !gadget.background = 'lightgrey'
+  endif
+  
+  do !a from 1 to !numView.size()
+    if (!gadget.val) then
+      !viewName = '!!' & 'GPH3DDESIGN' & '$!<a>' & '.clipBox.enable()'
+    else
+      !viewName = '!!' & 'GPH3DDESIGN' & '$!<a>' & '.clipBox.disable()'
+    endif
+    $!<viewName>
+    handle any
+    endhandle
+  enddo
+endmethod
+
+-- Description : Clear Aid and Disable Clipping Volume.
+define method .aidboxOff()
+  AID CLEAR ALL 9102013
+  !numView = !!gphviews.views
+  do !a from 1 to !numView.size()
+    !viewName = '!!' & 'GPH3DDESIGN' & '$!<a>' & '.clipBox.disable()'
+    $!<viewName>
+    handle any
+    endhandle
+  enddo
+  !this.clip.val = FALSE
+  !this.clip.background = 'lightgrey'
+endmethod

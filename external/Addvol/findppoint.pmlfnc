@@ -1,0 +1,35 @@
+------------------------------------------------------------------------
+-- Macro:                  * findppoint => 
+-- TYPE:                   * Function
+-- Description:            * Function will checks ppoint in the volume - boolean
+-- Author:                 * ROBERT VANCISIN
+-- Last modification:      * 29.01.2005
+------------------------------------------------------------------------
+define function !!findppoint(!Point is STRING,!thisform is ANY) is BOOLEAN
+  !FlagInside = FALSE
+  !ResultAr = !thisform.ResulLim
+  !OposW = Object Position('$!ResultAr[1]  $!ResultAr[2]')
+  !OposS = Object Position('$!ResultAr[3]  $!ResultAr[4]')
+  !OposD = Object Position('$!ResultAr[5]  $!ResultAr[6]')
+  !OposE = Object Position('$!ResultAr[8]  $!ResultAr[9]')
+  !OposN = Object Position('$!ResultAr[10] $!ResultAr[11]')
+  !OposU = Object Position('$!ResultAr[12] $!ResultAr[13]')
+  var !PosCEE $!Point E wrt/*
+  handle any
+    golabel /JumpOver1
+  endhandle
+  !OPosCEE = Object Position('E $!PosCEE')
+  var !PosCEN $!Point N wrt/*
+  !OPosCEN = Object Position('N $!PosCEN')
+  var !PosCEU $!Point U wrt/*
+  !OPosCEU = Object Position('U $!PosCEU')
+  if (!OposW.lt(!OPosCEE) and !OPosCEE.lt(!OposE)) then 
+    if (!OposS.lt(!OPosCEN) and !OPosCEN.lt(!OposN)) then 
+      if (!OposD.lt(!OPosCEU) and !OPosCEU.lt(!OposU)) then 
+        !FlagInside = TRUE
+      endif
+    endif
+  endif
+  label /JumpOver1
+  return !FlagInside
+endfunction

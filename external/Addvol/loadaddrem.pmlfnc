@@ -1,0 +1,14 @@
+------------------------------------------------------------------------
+-- Macro:                  * loadaddrem => 
+-- TYPE:                   * Function
+-- Description:            * Function loads objects and main form
+-- Author:                 * ROBERT VANCISIN
+-- Last modification:      * 03.01.2005
+------------------------------------------------------------------------
+define function !!loadaddrem()
+  pml rehash all
+  PML RELOAD OBJECT rvaaddvcount
+  PML RELOAD OBJECT rvaaddvprimit
+  PML RELOAD FORM   !!rvafaddvol
+  SHOW !!rvafaddvol  Free Centred xr0.1 yr0.1
+endfunction
