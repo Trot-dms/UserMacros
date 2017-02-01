@@ -1,0 +1,204 @@
+---------------------------------------------------------------------------------
+--
+-- (c) Copyright 2010 to Current Year 
+-- Shanghai Hoto Petrochemical Engineering Co., Ltd
+-- eryar All rights reserved.
+--
+--  File:          pipeflow.pmlfrm
+--  Type:          Form Definition
+--  Group:         General Application
+--  Keyword:       GEN
+--  Module:        DESIGN
+--
+-- Author:          eryar@163.com
+-- Created:         2010-09-17 15:15
+--
+-- Description:     Indicate pipe media flow direction.
+--
+---------------------------------------------------------------------------------
+setup form !!pipeflow
+        !This.FormTitle         =       'Pipe Flow Indicator'
+        !This.Cancelcall        =       '!This.close()'
+        !This.FormRevision      =       '1.0v'
+ 
+        frame .pipeFlowFrame
+                button  .bCE    'CE'   
+                para    .ceName                 at      xmax            ymin    width 16 line 1
+ 
+                toggle  .turn   'On/Off'        at      xmax            ymin                    
+        exit
+                
+exit
+ 
+---------------------------------------------------------------------------------
+--
+-- Method:      pipeflow()
+--
+-- Description:  
+--
+-- Method Type: Function/Procedure
+-- Arguments:
+--   [#] [R/RW] [Data Type] [Description]
+-- Return:
+--   [Data Type] [Description]
+--
+---------------------------------------------------------------------------------
+define method .pipeflow()
+        !this.bCE.callback      =       '!this.getCE()'
+        !this.turn.callback     =       '!this.apply()'
+endmethod
+---------------------------------------------------------------------------------
+--
+-- Method:      getCE()
+--
+-- Description:  get current element for indicate pipe media flow
+--
+-- Method Type: Function/Procedure
+-- Arguments:
+--   [#] [R/RW] [Data Type] [Description]
+-- Return:
+--   [Data Type] [Description]
+--
+---------------------------------------------------------------------------------
+define method .getCE()
+        --
+		unenhance all
+		!tempCE = ce
+		!oldCE = ce
+		
+		--pipe element
+		if (!tempCE.type neq('PIPE')) then
+			owner
+			!tempCE = ce
+			--bran
+			if (!tempCE.type neq('PIPE')) then
+			owner
+			!tempCE = ce
+				--pipe
+				if (!tempCE.type neq('PIPE')) then
+					$!oldCE
+					!currentElement = ce
+				else
+					!currentElement = ce
+					
+				endif
+			else
+				!currentElement = ce
+				
+			endif
+		else
+			!currentElement = ce
+			
+		endif
+        --!currentElement =       ce
+        !elementName    =       !currentElement.Name
+        !this.ceName.val=       !elementName
+		enhance ce colour 1
+		
+endmethod
+---------------------------------------------------------------------------------
+--
+-- Method:      apply()
+--
+-- Description:  
+--
+-- Method Type: Function/Procedure
+-- Arguments:
+--   [#] [R/RW] [Data Type] [Description]
+-- Return:
+--   [Data Type] [Description]
+--
+---------------------------------------------------------------------------------
+define method .apply()
+        -- remember where we came in
+        !memory =       ce
+        
+        -- turn on pipe media flow
+        if(!this.turn.val) then
+                -- collect all branches 
+                var !branches collect all bran for $!this.ceName.val
+                
+                do !i index !branches
+                        -- handle every branch
+                        !branch =       !branches[$!i].dbref()
+                        !hPos   =       !branch.hPosition
+                        !tPos   =       !branch.tPosition
+                        !hDir   =       !branch.hDirection
+                        !tDir   =       !branch.tDirection
+                        !hBore  =       !branch.hBore
+                        !tDir   =       !tDir.Opposite()
+                        !arrow  =       !hBore.real() * 2
+ 
+                        -- add two aid arrow at head and tail
+                        AID ARROW AT $!hPos DIR $!hDir HEIGHT $!arrow PROPORTION 0.35
+                        AID ARROW AT $!tPos DIR $!tDir HEIGHT $!arrow PROPORTION 0.35
+ 
+                        -- add aid arrow on elbow
+                        var !elbows collect all elbow for $!branch
+                        do !j index !elbows
+                                !elbow          =       !elbows[$!j].dbref()
+                                !arrive         =       !elbow.Arrive
+                                !leave          =       !elbow.Leave
+                                $!elbow
+                                var !arrivePos  P$!<arrive>     position wrt world
+                                handle (2,201)
+                                        -- element does not have attribute PPOS
+                                        skip
+                                endhandle
+                                var !leavePos   P$!<leave>      position wrt world
+                                handle (2,201)
+                                        -- element does not have attribute PPOS
+                                        skip
+                                endhandle
+                                var !arriveDir  P$!<arrive>     direction wrt world
+                                var !leaveDir   P$!<leave>      direction wrt world
+                                !arriveDir      =       !arriveDir.Direction().Opposite().string()
+                                --
+                                AID ARROW AT $!arrivePos DIR $!arriveDir  HEIGHT $!arrow PROPORTION 0.35
+                                AID ARROW AT $!leavePos  DIR $!leaveDir   HEIGHT $!arrow PROPORTION 0.35
+                        enddo
+ 
+                        -- add aid arrow on valve
+                        var !valves collect all valve for $!branch
+                        do !h index !valves
+                                !valve  =       !valves[$!h].dbref()
+                                !vPos   =       !valve.Position
+                                --
+                                AID ARROW AT $!vPos DIR $!arriveDir  HEIGHT $!hBore PROPORTION 0.8
+                        enddo
+ 
+                        -- add aid arrow on tubi
+                        var !tubes collect all tubi for $!branch
+                        do !k index !tubes
+                                !tube   =       !tubes[$!k].dbref()
+                                !itsLen =       !tube.itLength
+                                !itsPos =       !tube.itPosition
+                        enddo
+                enddo
+        else
+                -- turn off pipe media flow, clear all aid arrow
+                AID CLEAR ALL
+        endif
+ 
+        -- go back 
+        !!ce    =       !memory
+endmethod
+---------------------------------------------------------------------------------
+--
+-- Method:      close()
+--
+-- Description:  
+--
+-- Method Type: Function/Procedure
+-- Arguments:
+--   [#] [R/RW] [Data Type] [Description]
+-- Return:
+--   [Data Type] [Description]
+--
+---------------------------------------------------------------------------------
+define method .close()
+        -- after close the form, clear all aid arrow
+        AID CLEAR ALL
+		unenhance all
+endmethod
+---------------------------------------------------------------------------------

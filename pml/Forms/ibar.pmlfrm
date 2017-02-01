@@ -1,0 +1,58 @@
+kill !!ibar
+
+setup form !!ibar
+
+  !this.formrevision  = '1.0'
+  !this.formtitle     = 'Insulation Toolbar'
+  !this.initcall      =  '!this.init()'
+
+	button .i1 pixmap width 16 height 16 call '!this.insu(|ON|)' tooltip 'Insulation ON'
+	!this.i1.addPixmap('%pdmsuser%/usermacros/icons/insuON.png')
+	
+	button .i2 pixmap width 16 height 16 call '!this.insu(|SOLID|)' tooltip 'Insulation ON and SOLID'
+	!this.i2.addPixmap('%pdmsuser%/usermacros/icons/insuSOLID.png')
+	
+	button .i3 pixmap width 16 height 16 call '!this.insu(|OFF|)' tooltip 'Insulation OFF'
+	!this.i3.addPixmap('%pdmsuser%/usermacros/icons/insuOFF.png')
+	
+	button .i4 pixmap width 16 height 16 call '!this.obstr(|ON|)' tooltip 'Obstruction ON'
+	!this.i4.addPixmap('%pdmsuser%/usermacros/icons/obstrON.png')
+	
+	button .i5 pixmap width 16 height 16 call '!this.obstr(|OFF|)' tooltip 'Obstruction OFF'
+	!this.i5.addPixmap('%pdmsuser%/usermacros/icons/obstrOFF.png')
+	
+	--button .i6 pixmap width 16 height 16 call '!this.obstr(|TRANS|)' tooltip 'Translucency all except CE'
+	--!this.i6.addPixmap('%pdmsuser%/usermacros/icons/trans.png')
+	
+exit
+
+define method .init()
+endmethod
+
+define method .insu(!action is STRING)
+
+	if (!action.eq('ON')) then
+		repr insu on  Translucency 50
+		repr update
+	elseif (!action.eq('SOLID')) then
+		repr insu on  Translucency 0
+		repr update
+	elseif (!action.eq('OFF')) then
+		repr insu off
+		repr update
+	endif
+
+endmethod
+
+define method .obstr(!action is STRING)
+
+	if (!action.eq('ON')) then
+		repr Obstruct on  Translucency 50
+		repr update
+	--elseif (!action.eq('TRANS')) then
+	elseif (!action.eq('OFF')) then
+		repr Obstruct off
+		repr update
+	endif
+
+endmethod

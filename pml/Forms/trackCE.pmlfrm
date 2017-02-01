@@ -1,0 +1,39 @@
+setup form !!TrackCE dialog
+  title 'Track CE center point'
+  !!TrackCE.initcall = '!this.init()'
+  track 'DESICE'    call '!this.newCE()'
+  track 'DBCHANGED' call '!this.newCE()'
+      menu .pop1 popup
+      !this.pop1.add( 'callback', 'Show history', '!this.newCE()' )
+	  toggle .trackON 
+	  text .myCE 'CE' width 25 is string
+	  text .myType 'Type' width 10 is string
+exit
+
+define method .init()
+	!this.trackON.val=true
+endmethod
+
+define method .newCE()
+	!CEtype = !!ce.type
+	if (!this.trackON.val) then
+		if (!CEtype.neq('WORL')) then
+			if (!CEtype.neq('SITE')) then
+				if (!CEtype.neq('ZONE')) then
+					if (!CEtype.neq('STRU')) then
+						if (!CEtype.neq('DATU')) then
+						
+							!!gphAlwaysRotate(!!gph3ddesign1.view, !!ce)
+							handle any
+								$p 'ERROR'
+							endhandle
+						
+						endif
+					endif
+				endif
+			endif
+		endif
+	endif
+	!this.myCE.val=!!ce.name
+	!this.myType.val=!CEtype
+endmethod

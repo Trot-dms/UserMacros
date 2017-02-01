@@ -1,0 +1,50 @@
+kill !!paintspref
+
+setup form !!paintspref
+
+  !this.formrevision  = '1.0'
+  !this.formtitle     = 'Paint SPREF'
+  !this.initcall      =  '!this.init()'
+
+	button .i1 'Get SPREF' call '!this.paint(|GET|)'
+	button .i2 'Set SPREF' call '!this.paint(|SET|)'
+	path down
+	text .text1 at xmin .i1 'SPREF:' width 35 is string
+exit
+
+define method .init()
+	!this.text1.val='Current SPREF is unset'
+	var !obiekt 'unset'
+	var !pick 'unset'
+	!this.i2.active = false
+endmethod
+
+define method .paint(!action is STRING)
+
+	if(!action.EQ('GET')) then
+		var !pick pick
+		!obiekt = !pick[1].dbref().spref.name
+		!this.text1.val = !obiekt
+		!this.i2.active = true
+		
+	elseif(!action.EQ('SET')) then
+			prompt off
+			
+			prompt load escape 'Pick elements to paint spref'
+			var !pick pick
+						
+			$!pick[1]
+			
+			spref $!this.text1.val
+			handle any
+					$p 'ERROR'
+			endhandle
+			
+			prompt on
+		
+			-- TODO : dodać rozpoznawanie typu i malowanie sprefa tylko na konkretny typ obiektu
+			-- TODO : dopracować metodę na malowanie - możliwość wielu malowań w pętli DO.
+		
+	endif
+	
+endmethod

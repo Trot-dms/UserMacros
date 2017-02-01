@@ -1,0 +1,111 @@
+--$d1=NEW
+--!action='$1'
+--!thisfile='$0'
+
+--if (defined(!!sbar)) then
+--!this=!!sbar
+--endif
+
+--if (!action.EQ('NEW')) then
+--setup form !!sbar dialog dock top
+--!this.formtitle = 'STEEL'
+--button .i1 'TOS' call 'jusline TOS'
+--button .i2 'BOS' call 'jusline BOS'
+--button .i3 'FOC' call 'jusline FOC'
+--button .i4 'NA' call 'jusline NA'
+--button .i5 'SPREF' call 'q spref'
+--button .i6 'EXT T' call 'show !!cdsctnext'
+--button .i7 'EXT BY' call 'show !!cdextsctn'
+--exit
+
+--show !!sbar
+
+
+
+--else
+--kill !!sbar
+
+--endif
+
+------------------------------------------------------------------------
+--
+-- Copyright (c) Foster Wheeler 2004/ViewPoint of Finland        
+--
+-- File:            VOFsuppsectools.pmlfrm
+--
+-- Author:          Ari Ojala
+-- Created:         November 1 2004
+--
+-- History:
+-- Rev   Mod                                        Date        Initials
+-- ----  -----------------------------------------  ----------  ---
+-- 1.0   First version of the form created          01/11/2004  ATO
+--
+-- Description:    Secondary steels editing  tools
+--
+------------------------------------------------------------------------
+--
+-- Methods defined:
+------------------------------------------------------------------------
+kill !!sbar
+
+setup form !!sbar
+  !this.formrevision  = '1.0'
+  !this.formtitle     = 'Steel Toolbar'
+  !this.initcall      =  '!this.init()'
+
+  button .steelconn pixmap width 16 height 16 call |$m/%PDMSUI%/DES/STLWRK/MSCTNCONN| tooltip 'Extend or cut steel to steel'
+  !this.steelconn.addPixmap('%pdmsuser%/usermacros/icons/steel2steel.png')
+  
+  --button .plinerule 'Pline Rules...'        call |!!edgPlineFilter.edit()|
+  --path down
+  
+  button .bext pixmap width 16 height 16 call |show !!CDEXTSCTN| tooltip 'Extend steel by value'
+  !this.bext.addPixmap('%pdmsuser%/usermacros/icons/extby.png')
+  
+  button .text pixmap width 16 height 16 call |show !!CDSCTNEXT| tooltip 'Extend steel thro element'
+  !this.text.addPixmap('%pdmsuser%/usermacros/icons/extthro.png')
+  
+  button .flip pixmap width 16 height 16 call |$m/%PDMSUI%/DES/STLWRK/MFLIP| tooltip 'Flip steel'
+  !this.flip.addPixmap('%pdmsuser%/usermacros/icons/flip.png')
+  
+  --button .TNodes    'Tidy Nodes...'         call |show !!CDDELNODE|
+  --button .AligNodes 'Align Secondary Nodes' call |$m/%PDMSUI%/DES/STLWRK/MNODEALIGN|
+  
+  button .justify pixmap width 16 height 16 call |$m/%PDMSUI%/DES/STLWRK/XSETPLINE $<Section Justification$> JUSL $<SCTN GENSEC$> $<SCTN GENSEC$> NULL $<Identify section.$>| tooltip 'Set justification point'
+  !this.justify.addPixmap('%pdmsuser%/usermacros/icons/justification.png')
+  
+  button .spre pixmap width 16 height 16 call |$m/%PDMSUI%/DES/STLWRK/XSTLSPEC| tooltip 'Set steel specification'
+  !this.spre.addPixmap('%pdmsuser%/usermacros/icons/specification.png')
+  
+  --button .dismiss   'Dismiss' at xmax form-size ymin CANCEL
+exit
+
+
+define method .init()
+  if (undefined(!!cdsreftol)) then
+    $m/%PDMSUI%/des/stlwrk/fsreftol
+  endif
+  if (undefined(!!cdextsctn)) then
+    $m/%PDMSUI%/des/stlwrk/fextsctn
+  endif
+  if (undefined(!!cdsctnext)) then
+    $m/%PDMSUI%/des/stlwrk/fsctnext
+  endif
+  if (undefined(!!cddelnode)) then
+    $m/%PDMSUI%/des/stlwrk/fdelnode
+  endif
+  if (undefined(!!cdsetpline)) then
+    $m/%PDMSUI%/des/stlwrk/fsetpline
+  endif
+  if (undefined(!!cdstlspecd)) then
+    $m/%PDMSUI%/des/stlwrk/fstlspecd
+  endif
+  if (undefined(!!cdstlspec)) then
+    $m/%PDMSUI%/des/stlwrk/fstlspec
+  endif
+  if (undefined(!!cdstlplot)) then
+    $m/%PDMSUI%/des/stlwrk/fstlplot
+  endif
+
+endmethod

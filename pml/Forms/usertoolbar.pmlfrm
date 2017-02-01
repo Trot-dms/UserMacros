@@ -1,0 +1,137 @@
+------------------------------------------------------------------------
+-- Macro:              * usertoolbar.pmlfrm        
+-- Author:             * KAMIL GOLIS
+-- Contatct e-mail:    * kamil.golis@outlook.com
+-- Contatct tel:       * -
+-- Last modification:  * 18.12.2015
+------------------------------------------------------------------------       
+-- File:            usertoolbar.pmlfrm        
+-- Type:            form
+-- Group:           UTILITIES
+-- Module:          Design
+--
+-- Last modified by Author: KGOL Date: 18.12.2015
+--                  Revision: 1.0 $
+-- Description:     Main form for loading all UserMacros
+-- Note:            Macro must be installed in pmllib directory
+-- Run  macro:      pml rehash all
+-- 					pml load form !!usertoolbar
+-- 					show !!usertoolbar Free Centred xr0.1 yr0.1
+------------------------------------------------------------------------  
+--
+-- Macros list:
+-- 1		Insulation toolbar 		show !!ibar Free Centred xr0.9 yr0.12
+-- 2		History of CE			show !!historyCE
+-- 3		Steel toolbar			show !!sbar Free Centred xr0.9 yr0.12
+-- 4		Lisega toolbar			show !!jslisegalof
+-- 5		Paint spref				show !!paintspref Free Centred xr0.9 yr0.12
+-- 6		Find toolbar			$$m%pdmsuser%/usermacros/find.pml
+-- 7		3D box view export		$$m%pdmsuser%/usermacros/draftview.pml
+-- 8		Look direction toolbar	$$m%pdmsuser%/usermacros/lookview.pml
+-- 9		3D box remove toolbar	$$m%pdmsuser%/usermacros/remfromlist.pml
+--
+------------------------------------------------------------------------
+
+kill !!usertoolbar
+
+setup form !!usertoolbar 
+	!this.formtitle = 'USERMACROS v.1.2'
+	!this.callback = '!this.init()'
+	
+	--path down
+
+		button .i1 pixmap width 16 height 16 call 'show !!ibar Free Centred xr0.9 yr0.12' tooltip 'Insulation and obstruction toolbar'
+		!this.i1.addPixmap('%pdmsuser%/usermacros/icons/insu.png')
+
+		button .i2 pixmap width 16 height 16 call 'show !!historyCE' tooltip 'History of editing for CE'
+		!this.i2.addPixmap('%pdmsuser%/usermacros/icons/history.png')
+
+		--button .i3 pixmap width 16 height 16 call '$$m%pdmsuser%/usermacros/steel.pml' tooltip 'Steel toolbar'
+		button .i3 pixmap width 16 height 16 call 'show !!sbar Free Centred xr0.9 yr0.12' tooltip 'Steel toolbar'
+		!this.i3.addPixmap('%pdmsuser%/usermacros/icons/steel.png')
+
+		button .i4 at pixmap width 16 height 16 call '!this.LisegaTool()' tooltip 'Lisega toolbar'
+		!this.i4.addPixmap('%pdmsuser%/usermacros/icons/lisega.png')
+
+		button .i5 pixmap width 16 height 16 call 'show !!paintspref Free Centred xr0.9 yr0.12' tooltip 'Paint SPREF'
+		!this.i5.addPixmap('%pdmsuser%/usermacros/icons/malarz.png')
+
+		--button .i6 pixmap width 16 height 16 call 'mtocomponent off' tooltip 'MTO off'
+		--!this.i6.addPixmap('%pdmsuser%/usermacros/icons/mtooff.png')
+
+		--button .i14 at x1 ymax.i13 'MARK WELDS' call '$$m/$!thisfile i14'
+		--button .i15 at x1 ymax.i14 'UNMARK ALL' call 'unmark all'
+
+		button .i7 pixmap width 16 height 16 call '$$m%pdmsuser%/usermacros/find.pml' tooltip 'Find...'
+		!this.i7.addPixmap('%pdmsuser%/usermacros/icons/find.png')
+
+		--button .i17 at x1 ymax.i16 'MARK ATTAS' call '$$m/$!thisfile i17'
+
+		--button .i8 pixmap width 16 height 16 call '!this.SplitAtt()' tooltip 'Split ATTA XXXX'
+		--!this.i8.addPixmap('%pdmsuser%/usermacros/icons/attaxxx.png')
+
+		--button .i21 at x1 ' CLIP ORI.' call '$$m%pdmsuser%/clipori'
+
+		button .i9 pixmap width 16 height 16 call '$$m%pdmsuser%/usermacros/draftview.pml' tooltip 'Draft view - export 3D box to draft'
+		!this.i9.addPixmap('%pdmsuser%/usermacros/icons/draftview.png')
+
+		button .i10 pixmap width 16 height 16 call '$$m%pdmsuser%/usermacros/lookview.pml' tooltip 'Look direction toolbar'
+		!this.i10.addPixmap('%pdmsuser%/usermacros/icons/lookdir.png')
+
+		button .i11 pixmap width 16 height 16 call '$$m%pdmsuser%/usermacros/remfromlist.pml' tooltip '3D box remove list'
+		!this.i11.addPixmap('%pdmsuser%/usermacros/icons/removelist.png')
+
+		button .i12 pixmap width 16 height 16 call 'show !!pmltracing' tooltip 'PML Tracing tool'
+		!this.i12.addPixmap('%pdmsuser%/usermacros/icons/pmltracing.png')
+		
+		button .i13 pixmap width 16 height 16 call 'show !!trackCE' tooltip 'CE tracking'
+		!this.i13.addPixmap('%pdmsuser%/usermacros/icons/track.png')
+exit
+
+-------------------------------------------------------------------------------------------------
+define method .Init()
+
+	pml rehash all
+	
+	if (undefined(!!sbar)) then
+		pml load form !!sbar
+	endif
+	
+	if (undefined(!!historyCE)) then
+		pml load form !!historyCE
+	endif
+	
+	if (undefined(!!ibar)) then
+		pml load form !!ibar
+	endif
+	
+	if (undefined(!!paintspref)) then
+		pml load form !!paintspref
+	endif
+
+	if (undefined(!!pmltracing)) then
+		pml load form !!pmltracing
+	endif
+
+	if (undefined(!!trackCE)) then
+		pml load form !!trackCE
+	endif
+endmethod
+
+define method .SplitAtt()
+	if (!!ce.type.eq('ATTA')) then
+	$atty xxxx
+	$mtocomp off
+endif
+endmethod
+
+define method .LisegaTool()
+	if (undefined(!!jslisegalof)) then
+		$p
+		$p Error : Lisega is not installed
+		$p
+	else
+		show !!jslisegalof
+	endif
+
+endmethod

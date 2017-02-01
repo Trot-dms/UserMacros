@@ -1,0 +1,85 @@
+kill !!pmltracing
+
+setup form !!pmltracing 
+	!this.formtitle = 'PML tracing'
+	!this.callback = '!this.init()'
+	
+		button .tr0 'R0' callback '!this.tracingMode(' tooltip 'PML tracing OFF'
+		button .tr1 'R1' callback '!this.tracingMode(' tooltip 'Tracing to windows shell'
+		button .tr2 'R2' callback '!this.tracingMode(' tooltip 'Tracing to request windows'
+		button .tr3 'R4' callback '!this.tracingMode(' tooltip 'Tracing of only input lines executed'
+		button .tr4 'R6' callback '!this.tracingMode(' tooltip 'Turn pml trace on'
+		button .tr5 'R8' callback '!this.tracingMode(' tooltip 'Tracing of all input lines'
+		button .tr6 'R16' callback '!this.tracingMode(' tooltip 'Tracing without $ expression (default off)'
+		button .tr7 'R32' callback '!this.tracingMode(' tooltip 'Tracing includes line numbers'
+		button .tr8 'R64' callback '!this.tracingMode(' tooltip 'Tracing of macro/function changes'
+		button .tr9 'R100' callback '!this.tracingMode(' tooltip 'General debugging'
+		button .tr10 'R102' callback '!this.tracingMode(' tooltip 'Capture trace in ALPHA LOG '		
+exit
+
+define method .Init()
+		
+		!this.lockAllButtons()
+		!this.unlockButton(!this.tr0)
+		
+endmethod
+
+define method .tracingMode(!gadget is GADGET, !action is STRING)
+	
+	!this.lockAllButtons()
+	!this.unlockButton(!gadget)
+	
+	if (!gadget.eq(!this.tr0)) then	
+		$p Tracing off
+		$r0
+	elseif(!gadget.eq(!this.tr1)) then
+		$p Tracing to windows shell
+		$r1
+	elseif(!gadget.eq(!this.tr2)) then
+		$p Tracing to request windows
+		$r2
+	elseif(!gadget.eq(!this.tr3)) then
+		$p Tracing of only input lines executed
+		$r4
+	elseif(!gadget.eq(!this.tr4)) then
+		$p Turn pml trace on
+		$r6
+	elseif(!gadget.eq(!this.tr5)) then
+		$p Tracing of all input lines
+		$r8
+	elseif(!gadget.eq(!this.tr6)) then
+		$p Tracing without $ expression
+		$r16
+	elseif(!gadget.eq(!this.tr7)) then
+		$p Tracing includes line numbers
+		$r32
+	elseif(!gadget.eq(!this.tr8)) then
+		$p Tracing of macro/function changes
+		$r64
+	elseif(!gadget.eq(!this.tr9)) then
+		$p General debugging
+		$r100
+	elseif(!gadget.eq(!this.tr10)) then
+		$p Capture trace in ALPHA LOG
+		$r102
+	endif
+	
+endmethod
+
+define method .lockAllButtons()
+		!this.tr0.background = 'red'
+		!this.tr1.background = 'red'
+		!this.tr2.background = 'red'
+		!this.tr3.background = 'red'
+		!this.tr4.background = 'red'
+		!this.tr5.background = 'red'
+		!this.tr6.background = 'red'
+		!this.tr7.background = 'red'
+		!this.tr8.background = 'red'
+		!this.tr9.background = 'red'
+		!this.tr10.background = 'red'
+endmethod
+
+define method .unlockButton(!gadget is GADGET)
+	!gadget.background = 'green'
+endmethod

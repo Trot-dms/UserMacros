@@ -1,0 +1,37 @@
+
+
+kill !!historyCE
+
+setup form !!historyCE
+	!this.formrevision  = '1.0'
+	!this.formtitle     = 'History of editing'
+	!this.initcall      =  '!this.init()'
+  
+	path down
+	list .ceedited 'CE edited by...' single width 35 height 25
+	text .text1 'CE' width 35 is string
+	button .setCE 'CE' at xmin form ymax form call '!this.CEhist()'
+	button .cls 'Cancel' at xmax form-8 ymin .setCE cancel
+exit
+
+define method .init()
+	!this.ceedited.clear()
+endmethod
+
+define method .CEhist()
+	!this.ceedited.clear()
+	!this.text1.val=!!ce.name
+	!this.ceedited.add(!!ce.name)
+	
+	!HIST = HIST
+
+	DO !AUTO INDEX !HIST
+		!HIST[$!AUTO] 
+		!LIST = $!AUTO & ' -> ' & SESSD $!HIST[$!AUTO] & ' - ' & SESSU $!HIST[$!AUTO]
+		!this.ceedited.add(!LIST)
+		
+	ENDDO
+
+	
+	
+endmethod
