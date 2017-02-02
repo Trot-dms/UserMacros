@@ -22,6 +22,35 @@ To use macros you need to add directory with macros to PMLLIB path variable. Bel
 Example:
 Go to `PDMSUSER` folder of your PDMS installation (my is `C:\AVEVA\Plant\PDMS12.0.SP4`). In `PDMSUSER` folder create `USERMACROS` folder.
 
+![alt text](https://docs.google.com/uc?id=0Bzk-KP7c2FUyYlc5OHRiZHVuOFE&export=download "Setup step 1")
+
+If you downloaded zip file, unzip it to `USERMACROS` directory. Find `evars.bat` in PDMS directory - this file is provided by Aveva to set variables for PDMS. Add following lines in PMLLIB section:
+After line `if not "%pmllib%"=="" goto pmlok` add
+
+`set userpml=%~df1\pdmsuser\USERMACROS`
+
+`set pmllib=%~df1\pmllib %userpml%`
+
+![alt_text](https://docs.google.com/uc?id=0Bzk-KP7c2FUyY0owajFmNWVTR1k&export=download "Setup step 2")
+
+Save the .bat file and start PDMS.
+If everythink is ok and the USERMACROS directory is visible by PDMS you should see new `pml.index` file in USERMACROS directory.
+First time run of macros is made by commands:
+
+`pml rehash all`
+
+`pml load form !!usertoolbar`
+
+`show !!usertoolbar`
+
+Every next run is simple and it only needs below command:
+
+`show !!usertoolbar`
+
+This shows main Usermacros toolbar.
+
+## Avaible macros and run commands
+
 Macro | How to run
 ------|-----------
 Insulation and obstruction toolbar | `show !!ibar <Free Centred xr0.9 yr0.12>`
